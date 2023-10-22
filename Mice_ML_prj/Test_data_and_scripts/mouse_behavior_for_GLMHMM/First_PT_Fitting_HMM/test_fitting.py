@@ -12,6 +12,7 @@ def get_args():
     parser.add_argument("-i", "--input", help="inputs file name", required=True, type=str)
     parser.add_argument("-c", "--choice", help="choices file name", required=True, type=str)
     parser.add_argument("-e", "--exp", help="experiment name to use for figure title", required=True, type=str)
+    parser.add_argument("-s", "--state", help="the number of states to use", required=True, type=int)
     return parser.parse_args()
 
 
@@ -22,8 +23,9 @@ def train_hmm(num_states: int, inputs_train, inputs_test, choices_train, choices
                    observation_kwargs=dict(C=num_categories), transitions="standard")
     train_ll = hmm.fit(np.concatenate(choices_train), inputs=np.concatenate(inputs_train), method="em", num_iters=N_iters, tolerance=TOL)
 
-    log_likely = hmm.log_likelihood(np.concatenate(choices_test), inputs=np.concatenate(inputs_test))
-    return log_likely
+    log_likeli_test = hmm.log_likelihood(np.concatenate(choices_test), inputs=np.concatenate(inputs_test))
+    log_likeli_train = hmm.log_likelihood(np.concatenate(choices_train), inputs=np.concatenate(inputs_train))
+    return log_likeli_test, log_likeli_train
 
 
 if __name__ == "__main__":
@@ -32,11 +34,7 @@ if __name__ == "__main__":
     input_f: str = args.input #holds path or file name of mouse inputs data
     experiment: str = args.exp #holds experiment number to use as a graph header
 
-    print(input_f)
-    input_f_test = r'/home/sgolubev/bioinfo/Mice_ML_prj/Test_data_and_scripts/mouse_behavior_for_GLMHMM/BW046_behavior_data/BW046_inpts.npy'
-    print(input_f_test == input_f)
-    input_f = input_f_test
-    #load mouse inputs and choices
+     #load mouse inputs and choices
     inputs = np.load(input_f,allow_pickle = True)
     choices = np.load(choice_f,allow_pickle = True)
 
@@ -51,7 +49,8 @@ if __name__ == "__main__":
 
     #split data into k number of folds and train/test the model
     nKfold=5 #split data into 5 training and 5 testing data sets
-    log_likelyhood_dict = {new_list: [] for new_list in range(1, num_states+1)}
+    log_likeli_test_dict = {new_list: [] for new_list in range(1, num_states+1)} #dictionary to hold test data likelihoods
+    log_likeli_train_dict = {new_list: [] for new_list in range(1, num_states+1)} #dictionary to hold train data likelihoods
     kf = KFold(n_splits=nKfold, shuffle=True, random_state=None)
     # generate training and testing datasets for inputs and choices
     # kf.split returns indices in the given dataset
@@ -68,22 +67,31 @@ if __name__ == "__main__":
             choice_test = np.take(choices, test_ind)
             # call fitting and testing function
             likelyhood = train_hmm(i+1, input_train, input_test, choice_train, choice_test)
-            log_likelyhood_dict[i+1].append(likelyhood)
+            log_likeli_test_dict[i+1].append(likelyhood[0])
+            log_likeli_train_dict[i+1].append(likelyhood[1])
 
 
     #generate graph from the obtained likelyhood datapoints
-    keys = list(log_likelyhood_dict.keys())
-    values = list(log_likelyhood_dict.values())
+    keys = list(log_likeli_test_dict.keys())
+    values = list(log_likeli_test_dict.values())
 
-    x = []
-    y = []
+    x1 = []
+    y1 = []
+    x2 = []
+    y2 = []
 
-    for key, val_list in zip(keys, values):
-        x.extend([key] * len(val_list))
-        y.extend(val_list)
 
-    plt.scatter(x, y)
+    for key in keys:
+        x1.extend([key] * len(log_likeli_test_dict[key]))
+        y1.extend(log_likeli_test_dict[key])
+
+        x2.extend([key] * len(log_likeli_train_dict[key]))
+        y2.extend(log_likeli_train_dict[key])
+
+    plt.scatter(x1, y1, label='test_data', color='blue')
+    plt.scatter(x2, y2, label='train_data', color='red')
     plt.xlabel("State_n")
     plt.ylabel("Log_likelyhood")
     plt.title(f"Log_likelihood_{experiment}")
+    plt.legend()
     plt.savefig(f'log_likelyhood_{experiment}.png')    
