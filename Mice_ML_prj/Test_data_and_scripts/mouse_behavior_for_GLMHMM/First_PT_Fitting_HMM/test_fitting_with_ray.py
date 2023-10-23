@@ -8,6 +8,7 @@ import argparse
 
 
 def get_args():
+    """Sets the command line arguments to run this script"""
     parser = argparse.ArgumentParser(description="global variables to set input file names")
     parser.add_argument("-i", "--input", help="inputs file name", required=True, type=str)
     parser.add_argument("-c", "--choice", help="choices file name", required=True, type=str)
@@ -15,7 +16,9 @@ def get_args():
     parser.add_argument("-s", "--state", help="the number of states to use", required=True, type=int)
     return parser.parse_args()
 
+ray.init()
 
+@ray.remote
 def train_hmm(num_states: int, inputs_train, inputs_test, choices_train, choices_test):
     """Takes number of states, trainig datasets for input and choice data returns log likelyhood"""
     print(obs_dim)
@@ -33,18 +36,18 @@ if __name__ == "__main__":
     choice_f: str = args.choice #holds path or file name of mouse choice data
     input_f: str = args.input #holds path or file name of mouse inputs data
     experiment: str = args.exp #holds experiment number to use as a graph header
+    num_states: int =  args.state #holds number of states
 
      #load mouse inputs and choices
     inputs = np.load(input_f,allow_pickle = True)
     choices = np.load(choice_f,allow_pickle = True)
 
-    obs_dim = choices[0].shape[1]          # number of observed dimensions
-    num_categories = len(np.unique(np.concatenate(choices)))    # number of categories for output
-    input_dim = inputs[0].shape[1]                                    # input dimensions
-    num_states = 10
+    obs_dim: int = choices[0].shape[1]          # number of observed dimensions
+    num_categories: int = len(np.unique(np.concatenate(choices)))    # number of categories for output
+    input_dim: int = inputs[0].shape[1]                                    # input dimensions
 
-    TOL = 10**-4 # tolerance 
-    N_iters = 1000 # number of iterations for the fitting model
+    TOL: int = 10**-4 # tolerance 
+    N_iters: int = 1000 # number of iterations for the fitting model
 
 
     #split data into k number of folds and train/test the model
@@ -56,6 +59,7 @@ if __name__ == "__main__":
     # kf.split returns indices in the given dataset
     input_train = list()
     input_test = list()
+    ray_tasks = list()
     for k in kf.split(inputs):
         for i in range(num_states):
             train_ind = k[0]
@@ -66,10 +70,25 @@ if __name__ == "__main__":
             choice_train = np.take(choices, train_ind)
             choice_test = np.take(choices, test_ind)
             # call fitting and testing function
-            likelyhood = train_hmm(i+1, input_train, input_test, choice_train, choice_test)
-            log_likeli_test_dict[i+1].append(likelyhood[0])
-            log_likeli_train_dict[i+1].append(likelyhood[1])
+            ray_tasks.append(train_hmm.remote(i+1, input_train, input_test, choice_train, choice_test))
+            #log_likeli_test_dict[i+1].append(likelyhood[0])
+            #log_likeli_train_dict[i+1].append(likelyhood[1])
 
+    results = ray.get(ray_tasks)
+    #print(f'{results=}')
+    #print(f'{log_likeli_test_dict=}')
+    #print(f'{log_likeli_train_dict=}')
+
+    for i in range(1, num_states+1):
+        for k in range(5):
+            log_likeli_test_dict[i].append(results[i][0])
+            log_likeli_train_dict[i].append(results[i][1])
+
+    
+    print(f'{log_likeli_test_dict=}')
+    print(f'{log_likeli_train_dict=}')
+
+    ray.shutdown()
 
     #generate graph from the obtained likelyhood datapoints
     keys = list(log_likeli_test_dict.keys())
