@@ -77,6 +77,7 @@ def get_glmhmm_dinmc_weights(fit_ll, inpts):
     stimulus and bias values by posterior probability of the state in order to compare to psytrack."""
 
     
+    
 
 
 
