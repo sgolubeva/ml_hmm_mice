@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import ssm
 import numpy as np
-#from IPython import embed
+import ipdb 
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 import ray
@@ -22,14 +22,13 @@ ray.init()
 @ray.remote
 def train_hmm(num_states: int, inputs_train, inputs_test, choices_train, choices_test):
     """Takes number of states, trainig datasets for input and choice data returns log likelyhood"""
-    print(obs_dim)
     hmm = ssm.HMM(num_states, obs_dim, input_dim, observations="input_driven_obs", 
                    observation_kwargs=dict(C=num_categories), transitions="standard")
     train_ll = hmm.fit(np.concatenate(choices_train), inputs=np.concatenate(inputs_train), method="em", num_iters=N_iters, tolerance=TOL)
 
     log_likeli_test = hmm.log_likelihood(np.concatenate(choices_test), inputs=np.concatenate(inputs_test))
     log_likeli_train = hmm.log_likelihood(np.concatenate(choices_train), inputs=np.concatenate(inputs_train))
-    return log_likeli_test, log_likeli_train
+    return log_likeli_test, log_likeli_train,num_states
 
 
 if __name__ == "__main__":
@@ -84,18 +83,11 @@ if __name__ == "__main__":
 
 
     results = ray.get(ray_tasks)
-
-    count = 0
-    state = 1
+    
+    
     for like in results:
-        log_likeli_test_dict[state].append(like[0])
-        log_likeli_train_dict[state].append(like[1])
-        count+=1
-        if count == 5:
-            count = 0
-            state+=1
-
-
+        log_likeli_test_dict[like[2]].append(like[0])
+        log_likeli_train_dict[like[2]].append(like[1])
     ray.shutdown()
 
     with open(f'likel_data_test_{experiment}.csv', 'w') as ts, open(f'lekel_data_train_{experiment}.csv', 'w') as tr:
