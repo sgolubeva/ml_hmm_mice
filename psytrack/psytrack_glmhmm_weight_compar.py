@@ -105,8 +105,8 @@ def plot_dinamic_weights(ax, dinmc_weights_new, wMode):
     x_range = np.array(range(ntrials))
     #import ipdb; ipdb.set_trace()
     ax.plot(x_range, dinmc_weights_new[:, 0], c='tab:blue', label=f'glmhmm_stimulus')
-    ax.plot(x_range, dinmc_weights_new[:, 1], c='tab:orange', label=f'glmhmm_bias')
-    ax.plot(x_range, wMode[0], c='tab:green', label=f'psytrack_bias')
+    #ax.plot(x_range, dinmc_weights_new[:, 1], c='tab:orange', label=f'glmhmm_bias')
+    #ax.plot(x_range, wMode[0], c='tab:green', label=f'psytrack_bias')
     ax.plot(x_range, wMode[1], c='tab:red', label=f'psytrack_stimulus')
     ax.legend(prop=dict(size=25))
     ax.tick_params(axis='both', which='major', labelsize=20)
@@ -291,8 +291,7 @@ if __name__ == "__main__":
                             observation_kwargs=dict(C=num_categories), transitions="standard")
     fit_ll = fit_glm_hmm(new_glmhmm) # fit newly created glm-hmm
     hyp, evd, wMode, hess_info = fit_psytrack(psy_track_data) # fit psytrack
-    weights2 = {'bias':1, 's1': 1}
-    
+    #import ipdb; ipdb.set_trace()
     dinmc_weights_new = get_glmhmm_dinmc_weights(new_glmhmm, true_glmhmm, inpts, true_choice)
     fig, axes = plt.subplots(nrows=4, figsize=(50, 30), dpi=80, facecolor='w', edgecolor='k')
     for i in range(4):
@@ -305,5 +304,5 @@ if __name__ == "__main__":
         if i == 3:
             plot_dinamic_weights(axes[i], dinmc_weights_new, wMode)
     plt.tight_layout()
-    plt.savefig(f'wsc_fig{out}session{ntrials}.png')
+    plt.savefig(f'glmhmm_psytrack_{out}_session_{ntrials}_.png')
 
