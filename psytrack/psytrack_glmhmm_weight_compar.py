@@ -31,7 +31,7 @@ def generate_inputs(num_trials_per_sess, num_sess):
     inpts = np.ones((num_sess, num_trials_per_sess, input_dim))  # initialize inpts array
     # set stimulus values negative value correct choice is left [0], positive value correct choice 
     # is right[1]
-    stim_vals = [-1, -0.5, -0.25, -0.125, -0.0625, 0, 0.0625, 0.125, 0.25, 0.5, 1]
+    stim_vals = [-1, -0.5, -0.25, -0.125, -0.0625, 0.0625, 0.125, 0.25, 0.5, 1]
     inpts[:, :, 0] = np.random.choice(stim_vals, (num_sess, num_trials_per_sess))  # generate random sequence of stimuli
     inpts = list(inpts)  # convert inpts to correct format
     return inpts
@@ -49,7 +49,7 @@ def make_standard_hmm(gen_weights, gen_log_trans_mat ):
     return true_glmhmm
 
 
-def true_ll_model(num_trials_per_sess, num_sess):
+def true_ll_model(true_glmhmm, num_trials_per_sess, num_sess, inpts):
 
     """"Takes number of trials per session and number of sessions returns log likelihood for the model
     initialized with standard weights and transition matrix""" 
@@ -110,15 +110,15 @@ def get_glmhmm_dinmc_weights(new_glmhmm, true_glmhmm, inpts, true_choice):
 
 
 def plot_dinamic_weights(ax, dinmc_weights_new, wMode, true_psy_we=None):
-    #import ipdb; ipdb.set_trace()
+    
     """Takes    . Plots psytrack and dinamic hmmglm weights on the same plot"""
     #import ipdb; ipdb.set_trace()
     colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red']
     x_range = np.array(range(ntrials))
     #import ipdb; ipdb.set_trace()
     ax.plot(x_range, dinmc_weights_new[:, 0], c='tab:blue', label=f'glmhmm_stimulus')
-    ax.plot(x_range, dinmc_weights_new[:, 1], c='tab:orange', label=f'glmhmm_bias')
-    ax.plot(x_range, wMode[0], c='tab:green', label=f'psytrack_bias')
+    #ax.plot(x_range, dinmc_weights_new[:, 1], c='tab:orange', label=f'glmhmm_bias')
+    #ax.plot(x_range, wMode[0], c='tab:green', label=f'psytrack_bias')
     ax.plot(x_range, wMode[1], c='tab:red', label=f'psytrack_stimulus')
     if true_psy_we is not None:
         ax.plot(x_range, (true_psy_we['W'][:,0])*-1, c='k', label=f'true psytrack weights')
@@ -149,7 +149,7 @@ def generate_data_psytrack(ntrials, stim_list):
     """"Takes   . Generates choice data using psytrack model"""
 
     seed = 31
-    num_weights = 4
+    num_weights = 1
     #num_trials = 5000
     hyper = {'sigma'   : 2**np.array([-4.0,-5.0,-6.0,-7.0]),
          'sigInit' : 2**np.array([ 0.0, 0.0, 0.0, 0.0])}
@@ -205,9 +205,9 @@ def plot_choices(ax, inpts, true_choice):
     y_values_jittered = jitter+cho
     x_range = np.array(range(len(cho)))
     scatter_correct = ax.scatter(x_range[correct_choices], y_values_jittered[correct_choices], 
-                                  label='correct', color='r', alpha=alpha)
+                                  label='correct', color='r', alpha=alpha, marker='v', s=50)
     scatter_wrong = ax.scatter(x_range[~correct_choices], y_values_jittered[~correct_choices],
-                                 label='wrong', color='k',alpha=alpha)
+                                 label='wrong', color='k',alpha=alpha, s=50)
     ax.set_yticks([0,1], ['L', 'R'])
     ax.tick_params(axis='both', which='major', labelsize=20)
     ax.legend(prop=dict(size=25))
@@ -224,9 +224,9 @@ def plot_states(new_glmhmm,  true_glmhmm, ax, true_choice, inpts, true_latents):
     posterior_probs_new = [new_glmhmm.expected_states(data=data, input=inpt)[0]
                 for data, inpt
                 in zip(true_choice, inpts)] # plot states predicted by the model not initialized with statndard weights and matrices
-    posterior_probs_true = [true_glmhmm.expected_states(data=data, input=inpt)[0]
-                for data, inpt
-                in zip(true_choice, inpts)] # plot states predicted by the model initialized with standard weights and matrices
+    #posterior_probs_true = [true_glmhmm.expected_states(data=data, input=inpt)[0]
+                #for data, inpt
+                #in zip(true_choice, inpts)] # plot states predicted by the model initialized with standard weights and matrices
     
     # plot true states of the model when it generated the choice data
     x_range = np.array(range(len(true_latents[0])))
@@ -238,7 +238,7 @@ def plot_states(new_glmhmm,  true_glmhmm, ax, true_choice, inpts, true_latents):
 
     sess_id = 0 #session id; can choose any index between 0 and num_sess-1
     for k in range(num_states):
-        ax.plot(posterior_probs_new[sess_id][:, k], label="State " + str(k + 1), lw=2,
+        ax.plot(posterior_probs_new[sess_id][:, k], label="State " + str(k + 1), lw=4,
                 color=cols[k])
         #ax.plot(posterior_probs_true[sess_id][:, k], label="State " + str(k + 1), lw=2,
                 #color=cols[k], linestyle='--')
@@ -251,7 +251,7 @@ def plot_states(new_glmhmm,  true_glmhmm, ax, true_choice, inpts, true_latents):
     ax.set_title(f"States (Set {ntrials})", fontsize=25)
 
 
-def plot_weights(new_glmhmm, ax):
+def plot_weights(new_glmhmm, ax, gen_weights):
 
     """Takes fitted glm hmm and axis object for plotting and plots standard and recovered weights 
     on the first of three subplots"""
@@ -285,32 +285,41 @@ def plot_weights(new_glmhmm, ax):
 
 def psy_with_glmhmm_cho():
     """Takes   . Uses choices generated by glmhmm to fit the model and plot results"""
-    choi_psy = copy.deepcopy(true_choice)
-    psy_track_data = convert_data_for_psytrack(inpts, choi_psy) # convert data generated with glmhmm into psytrack format
-        # initialize new glm_hmm
-    
+
+    gen_weights = np.array([[[6, 1]], [[2, -3]], [[2, 3]]])
+    gen_log_trans_mat = np.log(np.array([[[0.98, 0.01, 0.01], [0.05, 0.92, 0.03], [0.03, 0.03, 0.94]]]))
+    true_glmhmm = make_standard_hmm(gen_weights, gen_log_trans_mat)
+
+   
+    # initialize new glm_hmm
     new_glmhmm = ssm.HMM(num_states, obs_dim, input_dim, observations="input_driven_obs", 
                             observation_kwargs=dict(C=num_categories), transitions="standard")
     inpts = generate_inputs(ntrials, num_sess)
-    true_ll, true_latents, true_choice = true_ll_model(ntrials, num_sess) # geterate choices using glm-hmm
+    true_ll, true_latents, true_choice = true_ll_model(true_glmhmm, ntrials, num_sess, inpts) # geterate choices using glm-hmm
     fit_ll = fit_glm_hmm(new_glmhmm, true_choice, inpts) # fit newly created glm-hmm
+
     perm = find_permutation(true_latents[0], new_glmhmm.most_likely_states(true_choice[0], input=inpts[0]),
                                  K1=num_states, K2=num_states)
+    
     new_glmhmm.permute(perm) # find permutations for the glmhmm
+
+    choi_psy = copy.deepcopy(true_choice)
+    psy_track_data = convert_data_for_psytrack(inpts, choi_psy) # convert data generated with glmhmm into psytrack format
     hyp, evd, wMode, hess_info = fit_psytrack(psy_track_data, 'inpt1') # fit psytrack
     dinmc_weights_new = get_glmhmm_dinmc_weights(new_glmhmm, true_glmhmm, inpts, true_choice) # get dynamic weights for glmhmm
 
 
-    fig, axes = plt.subplots(nrows=4, figsize=(50, 30), dpi=80, facecolor='w', edgecolor='k')
+    fig, axes = plt.subplots(nrows=4, figsize=(400, 30), dpi=80, facecolor='w', edgecolor='k')
+
     for i in range(4):
-        if i == 0:
-            plot_weights(new_glmhmm, axes[i]) # plot weights
+        # if i == 0:
+        #     plot_weights(new_glmhmm, axes[i], gen_weights) # plot weights
         if i == 1:
-            plot_states(new_glmhmm,  true_glmhmm, axes[i]) # plot states
+            plot_states(new_glmhmm,  true_glmhmm, axes[i], true_choice, inpts, true_latents) # plot states
         if i == 2:
-            plot_choices(axes[i]) # plot choices
+            plot_choices(axes[i], inpts, true_choice) # plot choices
         if i == 3:
-            plot_dinamic_weights(axes[i], dinmc_weights_new, wMode)
+            plot_dinamic_weights(axes[i], dinmc_weights_new, (wMode)*-1)
     plt.tight_layout()
     plt.savefig(f'glmhmm_psytrack_{out}_session_{ntrials}_.png')
 
@@ -323,6 +332,7 @@ def glmhmm_with_psy_cho(synth_psy_data):
     suitable for glm-hmm.
     Uses choice data generated by psytrack to fit the glmhmm and psytrack models and plot
     dynamic weights"""
+
     #import ipdb; ipdb.set_trace()
     glmhmm_data_choices = convert_data_for_glmhmm(synth_psy_data) # convert data generated by psytrack into glm-hmm format
     new_glmhmm = ssm.HMM(num_states, obs_dim, input_dim, observations="input_driven_obs", 
@@ -368,18 +378,17 @@ if __name__ == "__main__":
     N_iters = 1000        # number of fit iterations 
     #npr.seed(0)
     # set the weights and state transition probability matrix
-    gen_weights = np.array([[[6, 1]], [[2, -3]], [[2, 3]]])
-    gen_log_trans_mat = np.log(np.array([[[0.98, 0.01, 0.01], [0.05, 0.92, 0.03], [0.03, 0.03, 0.94]]]))
+    
     stim_list = [-1, -0.5, -0.25, -0.125, -0.0625, 0.0625, 0.125, 0.25, 0.5, 1]
     # initialize a standard glmhmm with starting weights and transition matrix
 
-    true_glmhmm = make_standard_hmm(gen_weights, gen_log_trans_mat)
     
     
-    synth_psy_data = generate_data_psytrack(ntrials, stim_list) # generate data using psytrack
     
-    glmhmm_with_psy_cho(synth_psy_data)
-    #psy_with_glmhmm_cho()
+    #synth_psy_data = generate_data_psytrack(ntrials, stim_list) # generate data using psytrack
+    
+    #glmhmm_with_psy_cho(synth_psy_data)
+    psy_with_glmhmm_cho()
     
 
     

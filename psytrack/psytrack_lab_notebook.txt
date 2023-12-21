@@ -68,3 +68,19 @@ two lines: one for inputs, another for bias
 
 The line to run my script:
 python psytrack_glmhmm_weight_compar.py -n 10 -se 1 -o test
+
+Encountered exception thrown with psytrack source code. Used the following line to debug it:
+goes into debugger if an exception is thrown
+python -m ipdb -c continue psytrack_glmhmm_weight_compar.py -n 11 -se 1 -o test
+
+
+
+if git authentification fais in vs code
+
+/projects/bgmp/shared/groups/2023/ml-mice/shared/BW046_behavior_data/BW046_choices.npy
+/projects/bgmp/shared/groups/2023/ml-mice/shared/BW046_behavior_data/BW046_inpts.npy
+/projects/bgmp/shared/groups/2023/ml-mice/shared/BW046_behavior_data/BW046_reaction_times.npy
+
+
+python plot_tr_ts.py -it1 /projects/bgmp/shared/groups/2023/ml-mice/sgolubev/ml_hmm_mice/SSM_Train/csv/binary_choice/likel_data_test_BW051_n10_binary.csv -it2 /projects/bgmp/shared/groups/20
+23/ml-mice/sgolubev/ml_hmm_mice/SSM_Train/csv/binary_choice/lekel_data_train_BW051_n10_binary.csv -e BW051_10
