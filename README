@@ -12,7 +12,7 @@ GLM-HMM is a good choice of a model because mice express distinct types of behav
 One downside of using GLM-HMM could be that it produses descrete states probability and doesn't describe transitions between the states very well. To capture state transitions, we are using psytrack, the model that outputs a set of continous evolwing weights which might be able to capture state transitions more efficiently.
 The inputs into both models are observed mouse choices and stimulii (images shown to mice). In addition to mouse choices, I am looking at mouse reaction times to see if they change with different states. If mouse reaction times add more information about each state, they should be included into the models as a separate parameter.
 
-### Main projectmilestones
+### Main projectmile stones
 
 #### How many GLM-HMM states should we use?
 First question I asked: how many hidden Markov states should be used for model fitting. 
