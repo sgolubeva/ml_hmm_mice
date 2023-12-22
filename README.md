@@ -1,5 +1,5 @@
 ### Project Overview
-The goal of tgis project is to model mouse behavioral choices using hidden Markov and generalized liear models.
+The goal of this project is to model mouse behavior using hidden Markov and generalized liear models.
 
 I am using generalized linear model combined with hidden Markov model which is put into the package called ssm. The method of using GLM-HMM is described in the following [publication](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8890994/),
 and the ssm package could be found [here](https://github.com/lindermanlab/ssm/tree/master). Additionally, I am using the psytrack model described [here](https://www.cell.com/neuron/fulltext/S0896-6273(20)30963-6?_returnURL=https%3A%2F%2Flinkinghub.elsevier.com%2Fretrieve%2Fpii%2FS0896627320309636%3Fshowall%3Dtrue)
