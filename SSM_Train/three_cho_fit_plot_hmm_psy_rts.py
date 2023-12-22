@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# The purpose of this script is to fit three choice glmhmm and psytrack to the
+# experimental mouse data and plot results
+# plotted results are: mouse choices, reaction times by choice, glm-hmm states, and 
+# glmhmm and psytrack dynamic weights 
+# use this line for debugging: import ipdb; ipdb.set_trace()
 
 import numpy as np
 import numpy.random as npr
@@ -10,6 +15,8 @@ from ssm.util import find_permutation
 import argparse
 from collections import defaultdict
 import copy
+import math
+from matplotlib.gridspec import GridSpec
 
 
 def get_args():
@@ -173,57 +180,64 @@ def plot_states(ax, hmm, filt_choices, filt_inputs, num_states, sess_id = None):
     ax.set_title(f"States", fontsize=50)
 
 
-def plot_choices(ax, filt_inpts, filt_choices, sess_id):
+def plot_choices(ax, inpts, choices, sess_id):
 
-    """Takes fitted glm hmm and axis object for plotting and plots choices on the third subplot"""
+    """Takes fitted glm hmm and axis object for plotting and plots choices on a subplot"""
 
-    
-    ins = filt_inpts[sess_id] # accessing 0th element in the outer list 
+    ins = inpts[sess_id] # accessing session number-th element in the outer list 
     ins = ins[0:, 0] # accessing entire column in the inputs 0th colunm, all rows
-    cho = filt_choices[sess_id]
+    cho = choices[sess_id]
     cho = cho[:, 0] # accessing entire column all rows
     mask = ins != 0 # create a mask to filter out 0s
     ins = ins[mask] # using mask filter out zeroes from ins
     cho = cho[mask] # filter out corresponding indexes from choices
+
     bool_inpts = (ins>0).astype(int) # convert inputs into bollean array first and then bools into numbers
-    correct_choices = bool_inpts == cho # compare converted number to chouses
+    correct_choices = bool_inpts == cho # compare converted number to choises
+    
     alpha = 0.6
-    jitter = 0.05 * np.random.randn(len(cho))
-    y_values_jittered = jitter+cho
+
     x_range = np.array(range(len(cho)))
 
-    scatter_correct = ax.scatter(x_range[correct_choices], y_values_jittered[correct_choices], 
-                                  label='correct', color='r', alpha=alpha, marker='v', s=200)
-    scatter_wrong = ax.scatter(x_range[~correct_choices], y_values_jittered[~correct_choices],
-                                 label='wrong', color='k',alpha=alpha, s=200)
-    ax.set_yticks([0,1], ['L', 'R'])
+    # scatter_correct = ax.scatter(x_range[correct_choices], y_values_jittered[correct_choices], 
+    #                               label='correct', color='r', alpha=alpha, marker='v', s=200)
+    # scatter_wrong = ax.scatter(x_range[~correct_choices], y_values_jittered[~correct_choices],
+    #                              label='wrong', color='k',alpha=alpha, s=200)
+    # ax.set_yticks([0,1], ['L', 'R'])
+
+    # plot no choice mouse choices
+    no_cho = cho > 1
+    result_ncho = np.where(no_cho & (bool_inpts == 1), 0.51, np.where(no_cho & (bool_inpts == 0), 0.5, 0))
+    jitter = 0.01 * np.random.randn(len(result_ncho))
+    y_values_jittered = jitter+result_ncho
+    scatter_ncho_right = ax.scatter(x_range[result_ncho == 0.51], y_values_jittered[result_ncho == 0.51], color= 'r', alpha=alpha, s=400)
+    scatter_ncho_left = ax.scatter(x_range[result_ncho == 0.50], y_values_jittered[result_ncho == 0.50], color= 'k', alpha=alpha, s=400)
+    
+    # plot correct choices
+    result_cho = np.where(correct_choices & (bool_inpts == 1), 1.51, np.where(correct_choices & (bool_inpts == 0), 1.50, 0))
+    y_values_jittered = jitter+result_cho
+    scatter_cho_right = ax.scatter(x_range[result_cho == 1.51], y_values_jittered[result_cho == 1.51], color= 'r', alpha=alpha, s=400)
+    scatter_cho_left = ax.scatter(x_range[result_cho == 1.50], y_values_jittered[result_cho == 1.50], color= 'k', alpha=alpha, s=400)
+    
+    # plot wrong choices
+    result_err = np.where(~correct_choices & (bool_inpts == 1), 1.01, np.where(~correct_choices & (bool_inpts == 0), 1, 0))
+    y_values_jittered = jitter+result_err
+    scatter_err_right = ax.scatter(x_range[result_err == 1.01], y_values_jittered[result_err == 1.01], color= 'r', alpha=alpha, s=400, label='Right')
+    scatter_err_left = ax.scatter(x_range[result_err == 1], y_values_jittered[result_err == 1], color= 'k', alpha=alpha, s=400, label='Left')
+    ax.set_yticks([0.5,1,1.5], ['No resp', 'Error', 'Hit'])
+
     ax.tick_params(axis='both', which='major', labelsize=40)
     ax.legend(prop=dict(size=40))
     ax.set_xlabel("trial #", fontsize = 50)
     ax.set_ylabel("choice", fontsize = 50)
     ax.set_title(f"Choices", fontsize=50)
 
-
-def plot_dinamic_weights(ax, dimc_weights, wMode, len_track):
-
-    """Takes axes, glm-hmm dinamic weights, psytrack dinamic weights. 
-    Plots psytrack and dinamic hmmglm weights on the same plot"""
-
-    
-    x_range = np.array(range(len(dimc_weights)))
-    ax.plot(x_range, dimc_weights[:, 0], c='tab:blue', label=f'glmhmm_stimulus')
-    #ax.plot(x_range, dimc_weights[:, 1], c='tab:orange', label=f'glmhmm_bias')
-    #ax.plot(x_range, wMode[0][len_track:(len_track + len(dimc_weights))], c='tab:green', label=f'psytrack_bias')
-    ax.plot(x_range, wMode[1][len_track:(len_track + len(dimc_weights))], c='tab:red', label=f'psytrack_stimulus')
-    ax.legend(prop=dict(size=40))
-    ax.tick_params(axis='both', which='major', labelsize=40)
-    ax.set_xlabel("trial #", fontsize = 50)
-    ax.set_ylabel("weight", fontsize = 50)
     
 
 def plot_reaction_times(ax, react_times, sess_id):
 
     """Takes reaction times and axes and plots them on it's own subplot"""
+
     x_range = np.arange(len(react_times[sess_id]))
     ax.plot(x_range, np.squeeze(react_times[sess_id]), color = 'k')
     ax.tick_params(axis='both', which='major', labelsize=40)
@@ -232,33 +246,133 @@ def plot_reaction_times(ax, react_times, sess_id):
     ax.set_title(f"Reaction times", fontsize=50)
 
 
-def plot_all(wMode,hmm, filt_choices, filt_inputs, num_states, filt_react_times):
+def plot_react_time_by_choice(ax, side: str, sess_id, inpts, react_times, summary_dict):
+
+    """Takes axis to plot on, side: left or right choices to plot, session id to plot by session,
+    and inpts to access each session. Plots reaction times by the stimulus side: left or right"""
+
+    ins = inpts[sess_id] # accessing session number-th element in the outer list
+    ins = ins[0:, 0] # accessing entire column in the inputs 0th colunm, all rows
+    bool_inpts = (ins>0).astype(int) # convert inputs into bollean array first and then bools into numbers
+
+    if side == 'right':
+        filt_stim_react = react_times[sess_id][bool_inpts == 1]
+        filt_stim_react = filt_stim_react[~np.isnan(filt_stim_react)]
+        summary_dict['right'].extend(filt_stim_react.tolist())
+    else:
+        filt_stim_react = react_times[sess_id][bool_inpts == 0]
+        filt_stim_react = filt_stim_react[~np.isnan(filt_stim_react)]
+        summary_dict['left'].extend(filt_stim_react.tolist())
+
+    
+    ax.hist(filt_stim_react, bins=int(math.sqrt(len(filt_stim_react))), edgecolor='k', color='c', )
+    ax.axvline(filt_stim_react.mean(), color='k', linestyle='dashed', linewidth=10)
+    
+    min_ylim, max_ylim = ax.set_ylim()
+    plt.text(filt_stim_react.mean()*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(filt_stim_react.mean()), fontsize=50)
+    ax.tick_params(axis='both', which='major', labelsize=40)
+    ax.set_xlabel("reaction time #", fontsize = 50)
+    ax.set_ylabel("count", fontsize = 50)
+    ax.set_title(f"reaction times {side}", fontsize=50)
+
+def plot_correct_wrong_rts(ax, side: bool, sess_id, inpts, choices, react_times, summary_dict):
+
+    """Takes axis to plot, wrong or correct, session id to plot by session"""
+    ins = inpts[sess_id] # accessing session number-th element in the outer list 
+    ins = ins[0:, 0] # accessing entire column in the inputs 0th colunm, all rows
+    cho = choices[sess_id]
+    cho = cho[:, 0] # accessing entire column all rows
+    bool_inpts = (ins>0).astype(int) # convert inputs into bollean array first and then bools into numbers
+    correct_choices = bool_inpts == cho # compare converted number to choises
+
+    if side == True:
+        filt_type_react = react_times[sess_id][correct_choices == True]
+        filt_type_react = filt_type_react[~np.isnan(filt_type_react)]
+        summary_dict['correct'].extend(filt_type_react.tolist())
+    else:
+        filt_type_react = react_times[sess_id][correct_choices == False]
+        filt_type_react = filt_type_react[~np.isnan(filt_type_react)]
+        summary_dict['wrong'].extend(filt_type_react.tolist())
+    
+    ax.hist(filt_type_react, bins=int(math.sqrt(len(filt_type_react))), edgecolor='k', color='tab:purple', )
+    ax.axvline(filt_type_react.mean(), color='k', linestyle='dashed', linewidth=10)
+    min_ylim, max_ylim = ax.set_ylim()
+    plt.text(filt_type_react.mean()*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(filt_type_react.mean()), fontsize=50)
+    ax.tick_params(axis='both', which='major', labelsize=40)
+    ax.set_xlabel("reaction time #", fontsize = 50)
+    ax.set_ylabel("count", fontsize = 50)
+    ax.set_title(f"reaction times {side}", fontsize=50)
+
+
+def plot_peristim_hist():
+
+    """Takes hmm, reaction times sess_id. Plots peristimulus histograms by checking for state trasnsition
+    points. A transition point is denoted as a drop in max state pobability below 80%. When this point is reached 
+    I take 5 points upsteream and 5 points downstream in the corresponding index reaction time array"""
+
+    pass
+
+def plot_all(hmm, filt_choices, filt_inputs, num_states, react_times, summary_dict):
 
     """main plotting function. Plots states, choices, psytrack and glmhmm weights on different plots"""
     
     len_track = 0 #track length of psytrack wMode array for plotting
-    
     for sess_id in range(len(filt_choices)):
-        fig, axes = plt.subplots(nrows=4, figsize=(100, 50), dpi=80, facecolor='w', edgecolor='k')
-        
-        dimc_weights = get_glmhmm_dinmc_weights(hmm, filt_inputs, filt_choices, sess_id)
+        #fig, axes = plt.subplots(nrows=4, figsize=(100, 50), dpi=80, facecolor='w', edgecolor='k')
+        fig = plt.figure(figsize=(100, 80))
+        gs=GridSpec(5,2)
                 
-        for i in range(4):
+        for i in range(7):
             if i == 0:
-                plot_choices(axes[i], filt_inputs, filt_choices, sess_id) # plot mouse_choices
+                ax1 = fig.add_subplot(gs[0,:])  # First row, span all columns
+                plot_choices(ax1, filt_inputs, filt_choices, sess_id) # plot mouse_choices
             if i == 1:
-                plot_reaction_times(axes[i], filt_react_times, sess_id) #plot mouse reaction times
+                ax2 = fig.add_subplot(gs[1,0])  # Second row, first column
+                plot_react_time_by_choice(ax2, 'right', sess_id, filt_inputs, react_times, summary_dict)
             if i == 2:
-                plot_states(axes[i], hmm, filt_choices, filt_inputs, num_states, sess_id) # plot states
+                ax3 = fig.add_subplot(gs[1,1])  # Second row, second column
+                plot_react_time_by_choice(ax3, 'left', sess_id, filt_inputs, react_times, summary_dict)
             if i == 3:
-                plot_dinamic_weights(axes[i], (dimc_weights)*-1, wMode, len_track)
-        len_track=len_track + len(dimc_weights)        
+                ax4 = fig.add_subplot(gs[2,0])
+                plot_correct_wrong_rts(ax4, True, sess_id, filt_inputs, choices, react_times, summary_dict)
+            if i == 4:
+                ax5 = fig.add_subplot(gs[2,1])
+                plot_correct_wrong_rts(ax5, False, sess_id, filt_inputs, choices, react_times, summary_dict)
+            if i == 5:
+                ax6 = fig.add_subplot(gs[3,:])  # Second row, second column
+                plot_states(ax6, hmm, filt_choices, filt_inputs, num_states, sess_id) # plot states
+            if i == 6:
+                ax7 = fig.add_subplot(gs[4,:])
+                plot_reaction_times(ax7, react_times, sess_id)
+                
         plt.tight_layout()
         plt.savefig(f'glmhmm_psytrack_fit_{experiment}_session_{sess_id}_.png')
         plt.close(fig) # close previous figure otherwise computer runs out of memory
-        print(f'iteration number {sess_id}')
-    
+        
+def write_summary(summary_dict):
 
+    """Takes summary dctionary and writes it's contents into csv files"""
+
+    with open(f'rt_by_stim_{experiment}.csv', 'w') as st, open(f'rt_by_corr_{experiment}.csv','w') as cr:
+        # write into a file mean reaction times by stimulus
+        st.write(f'right,')
+        for i in range(len(summary_dict['right'])-1):
+            st.write(f'{summary_dict["right"][i]},')
+        st.write(f'{summary_dict["right"][-1]}\n')
+        st.write(f'left,')
+        for i in range(len(summary_dict['left'])-1):
+            st.write(f'{summary_dict["left"][i]},')
+        st.write(f'{summary_dict["left"][-1]}\n')
+
+        # write into a file mean reaction times by correct or wrong
+        cr.write(f'correct,')
+        for i in range(len(summary_dict['correct'])-1):
+            cr.write(f'{summary_dict["correct"][i]},')
+        cr.write(f'{summary_dict["correct"][-1]}\n')
+        cr.write(f'wrong,')
+        for i in range(len(summary_dict['wrong'])-1):
+            cr.write(f'{summary_dict["wrong"][i]},')
+        cr.write(f'{summary_dict["wrong"][-1]}\n')
 
 if __name__ == "__main__":
     args = get_args()
@@ -267,31 +381,27 @@ if __name__ == "__main__":
     react_times_f = args.react_times #holds path for reaction times
     experiment: str = args.gname #holds experiment number to use as a graph header
          #load mouse inputs and choices
-
+    npr.seed(0)
     inputs = np.load(input_f,allow_pickle = True) # load numpy file inputs
     choices = np.load(choice_f,allow_pickle = True) # load numpy files choices
     react_times = np.load(react_times_f, allow_pickle = True) # load numpy file reaction times
-    
     
     input_dim: int = inputs[0].shape[1]  # input dimensions
     num_states = 3        # number of discrete states
     TOL: int = 10**-4 # tolerance 
     N_iters: int = 1000 # number of iterations for the fitting model
-
-    filt_inputs, filt_choices, filt_react_times = filter_no_response_cho(inputs, choices, react_times, cho=2)
+    summary_dict = {'left': [], 'right': [], 'correct': [], 'wrong': []}
     
-    obs_dim: int = filt_choices[0].shape[1]          # number of observed dimensions
-    num_categories: int = len(np.unique(np.concatenate(filt_choices)))    # number of categories for output
+    obs_dim: int = choices[0].shape[1]          # number of observed dimensions
+    num_categories: int = len(np.unique(np.concatenate(choices)))    # number of categories for output
 
     hmm = ssm.HMM(num_states, obs_dim, input_dim, observations="input_driven_obs", 
                    observation_kwargs=dict(C=num_categories), transitions="standard")
-    fit_glmhmm = fit_glm_hmm(hmm, filt_choices, filt_inputs, N_iters,TOL)
+    fit_glmhmm = fit_glm_hmm(hmm, choices, inputs, N_iters,TOL)
 
+    plot_all(hmm, choices, inputs, num_states, react_times, summary_dict)
+    write_summary(summary_dict)
 
-    copy_cho = copy.deepcopy(filt_choices) #copy choice data for psytrack otherwise it will change the original 1 and 0 to 1 and 2
-    psy_track_data = convert_data_for_psytrack(filt_inputs, copy_cho)
-    hyp, evd, wMode, hess_info = fit_psytrack(psy_track_data)
-    plot_all(wMode, hmm, filt_choices, filt_inputs, num_states, filt_react_times)
 
         
 
