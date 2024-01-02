@@ -105,6 +105,7 @@ def plot_reaction_times(ax, react_times, sess_id):
 def plot_peristimulus_hist(ax, trans_ind):
     pass
 
+
 def plot_all(trans_list, sess_id):
 
     """Takes a list of indexes where state transitions happen and plot reaction times on a histogram"""
@@ -126,24 +127,57 @@ def plot_all(trans_list, sess_id):
     plt.savefig(f'glmhmm_rt_fit_{experiment}_session__.png')
 
 
+def get_rts(trans_list, sess_id, rts_list_before, rts_list_after, react_times):
 
-def parse_probs(state_probs):
+    """Takes a list of transitions that contains indexes of points when state transition happened.
+    Accesses reaction time numpy array ussing session number and saves corresponding reaction times into a reaction times list"""
+
+    
+    for tr in trans_list:
+        if tr >= 10:
+            befors = react_times[sess_id][tr-10:tr]
+            rts_list_before = rts_list_before + befors.tolist()
+            
+        else:
+            befors = react_times[sess_id][0:tr]
+            rts_list_before = rts_list_before + befors.tolist()
+            
+        if len(react_times[sess_id]) - tr > 10:
+            afters = react_times[sess_id][tr+1:tr+11]
+            rts_list_after = rts_list_after + afters.tolist()
+            
+        else:
+            afters = react_times[sess_id][tr+1:]
+            rts_list_after = rts_list_after + afters.tolist()
+        
+    return rts_list_before, rts_list_after
+
+
+def parse_probs(state_probs, react_times):
 
     """Takes state probabilities. Iterates over state probabilities by session and triggers plotting function if
     state probability drops lower than 80% or rases higher than 80%"""
+
     drop_trans = []
-    rase_trans = []
-    for sess_id in range(len(state_probs)):
+    raise_trans = []
+    rts_before_drop = []
+    rts_after_drop = []
+    rts_before_raise = []
+    rts_after_raise = []
+    for sess_id in range(2):  #len(state_probs)
         max_probs = np.max(state_probs[sess_id], axis=1)
         for i in range(len(max_probs)):
             if (i != 0) or (i != (len(max_probs)-1)):
                 if max_probs[i] <= 0.80 and max_probs[i-1] >= 0.80:
                     drop_trans.append(i)
                 if max_probs[i] >= 0.80 and max_probs[i-1] <= 0.8:
-                    rase_trans.append(i)
+                    raise_trans.append(i)
+        get_rts(drop_trans, sess_id,rts_before_drop, rts_after_drop, react_times)
+        get_rts(raise_trans, sess_id, rts_before_raise, rts_after_raise, react_times)
+
         drop_trans = []
-        rase_trans = []
-        break
+        raise_trans = []
+        
     #import ipdb; ipdb.set_trace()
 
 
@@ -174,5 +208,5 @@ if __name__ == "__main__":
     state_probs = get_state_probs(hmm, choices, inputs)
 
 
-    parse_probs(state_probs)
+    parse_probs(state_probs, react_times)
 
