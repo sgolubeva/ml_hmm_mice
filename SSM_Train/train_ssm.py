@@ -102,8 +102,6 @@ def plot_reaction_times(ax, react_times, sess_id):
     ax.set_title(f"Reaction times", fontsize=50)
 
 
-def plot_peristimulus_hist(ax, trans_ind):
-    pass
 
 
 def plot_all(trans_list, sess_id):
@@ -127,23 +125,23 @@ def plot_all(trans_list, sess_id):
     plt.savefig(f'glmhmm_rt_fit_{experiment}_session__.png')
 
 
-def get_rts(trans_list, sess_id, rts_list_before, rts_list_after, react_times):
+def get_rts(trans_list, sess_id, rts_list_before, rts_list_after, react_times, wind_sze):
 
     """Takes a list of transitions that contains indexes of points when state transition happened.
     Accesses reaction time numpy array ussing session number and saves corresponding reaction times into a reaction times list"""
 
     
     for tr in trans_list:
-        if tr >= 10:
-            befors = react_times[sess_id][tr-10:tr]
+        if tr >= wind_sze:
+            befors = react_times[sess_id][tr-wind_sze:tr]
             rts_list_before = rts_list_before + befors.tolist()
             
         else:
             befors = react_times[sess_id][0:tr]
             rts_list_before = rts_list_before + befors.tolist()
             
-        if len(react_times[sess_id]) - tr > 10:
-            afters = react_times[sess_id][tr+1:tr+11]
+        if len(react_times[sess_id]) - tr > wind_sze:
+            afters = react_times[sess_id][tr+1:tr+wind_sze+1]
             rts_list_after = rts_list_after + afters.tolist()
             
         else:
@@ -153,7 +151,7 @@ def get_rts(trans_list, sess_id, rts_list_before, rts_list_after, react_times):
     return rts_list_before, rts_list_after
 
 
-def parse_probs(state_probs, react_times):
+def parse_probs(state_probs, react_times, wind_sze):
 
     """Takes state probabilities. Iterates over state probabilities by session and triggers plotting function if
     state probability drops lower than 80% or rases higher than 80%"""
@@ -164,7 +162,7 @@ def parse_probs(state_probs, react_times):
     rts_after_drop = []
     rts_before_raise = []
     rts_after_raise = []
-    for sess_id in range(2):  #len(state_probs)
+    for sess_id in range(len(state_probs)):  #len(state_probs)
         max_probs = np.max(state_probs[sess_id], axis=1)
         for i in range(len(max_probs)):
             if (i != 0) or (i != (len(max_probs)-1)):
@@ -172,14 +170,53 @@ def parse_probs(state_probs, react_times):
                     drop_trans.append(i)
                 if max_probs[i] >= 0.80 and max_probs[i-1] <= 0.8:
                     raise_trans.append(i)
-        get_rts(drop_trans, sess_id,rts_before_drop, rts_after_drop, react_times)
-        get_rts(raise_trans, sess_id, rts_before_raise, rts_after_raise, react_times)
-
+        rts_before_drop, rts_after_drop = get_rts(drop_trans, sess_id,rts_before_drop, rts_after_drop, react_times, wind_sze)
+        #print(f'drop {len(rts_before_drop)=} {len(rts_after_drop)}')
+        rts_before_raise, rts_after_raise = get_rts(raise_trans, sess_id, rts_before_raise, rts_after_raise, react_times, wind_sze)
+        #print(f'raise {len(rts_before_raise)=} {len(rts_after_raise)}')
         drop_trans = []
         raise_trans = []
-        
-    #import ipdb; ipdb.set_trace()
 
+
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 40), dpi=80, facecolor='w', edgecolor='k')  
+    plot_peristimulus_hist(axes, rts_before_drop, rts_after_drop, col='tab:purple')
+    plt.tight_layout()
+    plt.savefig(f'peristim_hist_drop_{experiment}_.png')
+    plt.close(fig) # close previous figure otherwise computer runs out of memory
+
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 40), dpi=80, facecolor='w', edgecolor='k')  
+    plot_peristimulus_hist(axes, rts_before_raise, rts_after_raise, col='tab:green')
+    plt.tight_layout()
+    plt.savefig(f'peristim_hist_rise_{experiment}_.png')
+    plt.close(fig) # close previous figure otherwise computer runs out of memory
+
+
+def plot_peristimulus_hist(axes, rt_before, rt_after, col):
+    
+    """Takes reaction time array and plots a histogram of reaction times before and after state transition point"""
+
+    
+    axes[0].hist(rt_before, bins=int(math.sqrt(len(rt_before))), edgecolor='k', color=col)
+    axes[0].tick_params(axis='both', which='major', labelsize=40)
+    axes[0].set_xlabel("reaxtion times", fontsize = 50)
+    axes[0].set_ylabel("count", fontsize = 50)
+    axes[0].set_title(f"Reaction times before transition", fontsize=50)
+    filt_rt_before = [x for x in rt_before if not math.isnan(x)] # filter out nans
+    avrg_before = sum(filt_rt_before)/len(filt_rt_before)
+    axes[0].axvline(avrg_before, color='k', linestyle='dashed', linewidth=10)
+    min_ylim, max_ylim = axes[0].set_ylim()
+    plt.text(avrg_before*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(avrg_before), fontsize=50)
+
+    axes[1].hist(rt_after, bins=int(math.sqrt(len(rt_after))), edgecolor='k', color=col)
+    axes[1].tick_params(axis='both', which='major', labelsize=40)
+    axes[1].set_xlabel("reaxtion times", fontsize = 50)
+    axes[1].set_ylabel("count", fontsize = 50)
+    axes[1].set_title(f"Reaction times after transition", fontsize=50)
+    filt_rt_after = [x for x in rt_after if not math.isnan(x)] # filter out nans
+    avrg_after = sum(filt_rt_after)/len(filt_rt_after)
+    axes[1].axvline(avrg_after, color='k', linestyle='dashed', linewidth=10)
+    min_ylim, max_ylim = axes[1].set_ylim()
+    plt.text(avrg_after*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(avrg_after), fontsize=50)
 
 
 if __name__ == "__main__":
@@ -207,6 +244,6 @@ if __name__ == "__main__":
     fit_glmhmm = fit_glm_hmm(hmm, choices, inputs, N_iters,TOL)
     state_probs = get_state_probs(hmm, choices, inputs)
 
-
-    parse_probs(state_probs, react_times)
+    wind_sze = 5
+    parse_probs(state_probs, react_times, wind_sze)
 
