@@ -162,7 +162,7 @@ def parse_probs(state_probs, react_times, wind_sze):
     rts_after_drop = []
     rts_before_raise = []
     rts_after_raise = []
-    for sess_id in range(len(state_probs)):  #len(state_probs)
+    for sess_id in range(len(state_probs)): 
         max_probs = np.max(state_probs[sess_id], axis=1)
         for i in range(len(max_probs)):
             if (i != 0) or (i != (len(max_probs)-1)):
@@ -218,6 +218,21 @@ def plot_peristimulus_hist(axes, rt_before, rt_after, col):
     min_ylim, max_ylim = axes[1].set_ylim()
     plt.text(avrg_after*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(avrg_after), fontsize=50)
 
+def parse_probs_by_state(sess_state_prob):
+
+    """Takes . Parses state probabilities by finding the max out of three probabilities for each data point
+    and saving it and its corresponding state in a tuple"""
+
+    max_probs_and_inds = []
+    for row in sess_state_prob:
+        max_prob = np.max(row) # max probability out of three
+        col_ind = np.argmax(row) # index of the max probability
+        max_probs_and_inds.append((max_prob, col_ind))
+
+    return max_probs_and_inds
+    
+
+
 
 if __name__ == "__main__":
     args = get_args()
@@ -245,5 +260,11 @@ if __name__ == "__main__":
     state_probs = get_state_probs(hmm, choices, inputs)
 
     wind_sze = 5
-    parse_probs(state_probs, react_times, wind_sze)
+    #parse_probs(state_probs, react_times, wind_sze)
+
+    for sess_id in range(len(state_probs)):
+        max_probs_inds = parse_probs_by_state(state_probs[sess_id])
+        break
+    import ipdb; ipdb.set_trace()
+    
 
