@@ -198,7 +198,7 @@ def plot_peristimulus_hist(axes, rt_before, rt_after, col):
     
     axes[0].hist(rt_before, bins=int(math.sqrt(len(rt_before))), edgecolor='k', color=col)
     axes[0].tick_params(axis='both', which='major', labelsize=40)
-    axes[0].set_xlabel("reaxtion times", fontsize = 50)
+    axes[0].set_xlabel("reaction times", fontsize = 50)
     axes[0].set_ylabel("count", fontsize = 50)
     axes[0].set_title(f"Reaction times before transition", fontsize=50)
     filt_rt_before = [x for x in rt_before if not math.isnan(x)] # filter out nans
@@ -209,7 +209,7 @@ def plot_peristimulus_hist(axes, rt_before, rt_after, col):
 
     axes[1].hist(rt_after, bins=int(math.sqrt(len(rt_after))), edgecolor='k', color=col)
     axes[1].tick_params(axis='both', which='major', labelsize=40)
-    axes[1].set_xlabel("reaxtion times", fontsize = 50)
+    axes[1].set_xlabel("reaction times", fontsize = 50)
     axes[1].set_ylabel("count", fontsize = 50)
     axes[1].set_title(f"Reaction times after transition", fontsize=50)
     filt_rt_after = [x for x in rt_after if not math.isnan(x)] # filter out nans
@@ -231,7 +231,18 @@ def parse_probs_by_state(sess_state_prob):
 
     return max_probs_and_inds
     
+def find_state_change_inds(max_probs, drop_trans, raise_trans):
 
+    """Takes a list of tuples of max probabilities for each data point and it's corresponding state
+    finds indexes of state switching point"""
+
+    for i in range(len(max_probs)):
+        if (i != 0) or (i != (len(max_probs)-1)):
+            if max_probs[i][0] <= 0.80 and max_probs[i-1][0] >= 0.80:
+                drop_trans.append((i, max_probs[i][1]))
+            if max_probs[i][0] >= 0.80 and max_probs[i-1][0] <= 0.8:
+                raise_trans.append((i, max_probs[i][1]))
+    return drop_trans, raise_trans                              
 
 
 if __name__ == "__main__":
@@ -260,11 +271,17 @@ if __name__ == "__main__":
     state_probs = get_state_probs(hmm, choices, inputs)
 
     wind_sze = 5
-    #parse_probs(state_probs, react_times, wind_sze)
+    parse_probs(state_probs, react_times, wind_sze)
 
-    for sess_id in range(len(state_probs)):
-        max_probs_inds = parse_probs_by_state(state_probs[sess_id])
-        break
-    import ipdb; ipdb.set_trace()
+    # for sess_id in range(len(state_probs)):
+    #     drop_trans = []
+    #     raise_trans = []
+    #     max_probs = parse_probs_by_state(state_probs[sess_id])
+    #     drop_trans, raise_trans = find_state_change_inds(max_probs, drop_trans, raise_trans)
+
+    #     drop_trans = []
+    #     raise_trans = []
+    #     break
+    #import ipdb; ipdb.set_trace()
     
 
