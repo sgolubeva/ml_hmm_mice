@@ -290,7 +290,7 @@ def generate_fig(rt_before, rt_after, st):
 
     """"Initializes a figure for peristimulus histograms"""
 
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 50), dpi=80, facecolor='w', edgecolor='k')  
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 50), dpi=80, facecolor='w', sharey=True, edgecolor='k')  
     plot_trans_hists(axes, rt_before, rt_after, st, col='tab:purple')
     plt.tight_layout()
     plt.savefig(f'peristim_hist_drop_{experiment}_{st}.png')
@@ -302,12 +302,12 @@ def plot_trans_hists(axes, rct_before, rct_after, st, col):
 
     """Takes an array of reaction times and plots them on a histograms showing 
     before and after transition reaction times"""
-    print(f'{np.sum(np.isnan(rct_before))=}')
-    print(f'{np.sum(np.isnan(rct_after))=}')
-    print(f'{st}')
+    
+
     nan_count_before = np.sum(np.isnan(rct_before))
     nan_count_after = np.sum(np.isnan(rct_after))
-    axes[0].hist(rct_before, bins=int(math.sqrt(len(rct_before))), edgecolor='k', color=col)
+    bins = np.arange(0, 2001, 100)
+    axes[0].hist(rct_before, bins=bins, edgecolor='k', color=col)
     axes[0].tick_params(axis='both', which='major', labelsize=40)
     axes[0].set_xlabel("reaction times", fontsize = 50)
     axes[0].set_ylabel("count", fontsize = 50)
@@ -315,10 +315,10 @@ def plot_trans_hists(axes, rct_before, rct_after, st, col):
     filt_rt_before = [x for x in rct_before if not math.isnan(x)] # filter out nans
     avrg_before = sum(filt_rt_before)/len(filt_rt_before)
     axes[0].axvline(avrg_before, color='k', linestyle='dashed', linewidth=10)
-    min_ylim, max_ylim = axes[0].set_ylim()
-    plt.text(avrg_before*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(avrg_before), fontsize=50)
+    #min_ylim, max_ylim = axes[0].set_ylim()
+    axes[0].text(avrg_before + 5, 8, 'Mean: {:.2f}'.format(avrg_before), fontsize=50)
 
-    axes[1].hist(rct_after, bins=int(math.sqrt(len(rct_after))), edgecolor='k', color=col)
+    axes[1].hist(rct_after, bins=bins, edgecolor='k', color=col)
     axes[1].tick_params(axis='both', which='major', labelsize=40)
     axes[1].set_xlabel("reaction times", fontsize = 50)
     axes[1].set_ylabel("count", fontsize = 50)
@@ -326,8 +326,7 @@ def plot_trans_hists(axes, rct_before, rct_after, st, col):
     filt_rt_after = [x for x in rct_after if not math.isnan(x)] # filter out nans
     avrg_after = sum(filt_rt_after)/len(filt_rt_after)
     axes[1].axvline(avrg_after, color='k', linestyle='dashed', linewidth=10)
-    min_ylim, max_ylim = axes[1].set_ylim()
-    plt.text(avrg_after*1.1, max_ylim*0.9, 'Mean: {:.2f}'.format(avrg_after), fontsize=50)
+    axes[1].text(avrg_before + 5, 8, 'Mean: {:.2f}'.format(avrg_after), fontsize=50)
 
 
 
@@ -370,7 +369,7 @@ if __name__ == "__main__":
         
         drop_trans = []
         raise_trans = []
-    get_rt_values(states_dict, window=5)
+    get_rt_values(states_dict, window=10)
     #import ipdb; ipdb.set_trace() 
     
     
