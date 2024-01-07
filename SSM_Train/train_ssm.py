@@ -290,28 +290,28 @@ def generate_fig(rt_before, rt_after, st):
 
     """"Initializes a figure for peristimulus histograms"""
 
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 40), dpi=80, facecolor='w', edgecolor='k')  
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 50), dpi=80, facecolor='w', edgecolor='k')  
     plot_trans_hists(axes, rt_before, rt_after, st, col='tab:purple')
     plt.tight_layout()
     plt.savefig(f'peristim_hist_drop_{experiment}_{st}.png')
     plt.close(fig) # close previous figure otherwise computer runs out of memory
 
-    # fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 40), dpi=80, facecolor='w', edgecolor='k')  
-    # plot_peristimulus_hist(axes, rts_before_raise, rts_after_raise, col='tab:green')
-    # plt.tight_layout()
-    # plt.savefig(f'peristim_hist_rise_{experiment}_.png')
-    # plt.close(fig) # close previous figure otherwise computer runs out of memory
+
 
 def plot_trans_hists(axes, rct_before, rct_after, st, col):
 
     """Takes an array of reaction times and plots them on a histograms showing 
     before and after transition reaction times"""
-
+    print(f'{np.sum(np.isnan(rct_before))=}')
+    print(f'{np.sum(np.isnan(rct_after))=}')
+    print(f'{st}')
+    nan_count_before = np.sum(np.isnan(rct_before))
+    nan_count_after = np.sum(np.isnan(rct_after))
     axes[0].hist(rct_before, bins=int(math.sqrt(len(rct_before))), edgecolor='k', color=col)
     axes[0].tick_params(axis='both', which='major', labelsize=40)
     axes[0].set_xlabel("reaction times", fontsize = 50)
     axes[0].set_ylabel("count", fontsize = 50)
-    axes[0].set_title(f"Reaction times before transition {st}", fontsize=50)
+    axes[0].set_title(f"RT before transition {st} nan # {nan_count_before} out {len(rct_before)} values", fontsize=50)
     filt_rt_before = [x for x in rct_before if not math.isnan(x)] # filter out nans
     avrg_before = sum(filt_rt_before)/len(filt_rt_before)
     axes[0].axvline(avrg_before, color='k', linestyle='dashed', linewidth=10)
@@ -322,7 +322,7 @@ def plot_trans_hists(axes, rct_before, rct_after, st, col):
     axes[1].tick_params(axis='both', which='major', labelsize=40)
     axes[1].set_xlabel("reaction times", fontsize = 50)
     axes[1].set_ylabel("count", fontsize = 50)
-    axes[1].set_title(f"Reaction times after transition {st}", fontsize=50)
+    axes[1].set_title(f"Reaction times after transition {st} nan # {nan_count_after} out {len(rct_after)} values", fontsize=50)
     filt_rt_after = [x for x in rct_after if not math.isnan(x)] # filter out nans
     avrg_after = sum(filt_rt_after)/len(filt_rt_after)
     axes[1].axvline(avrg_after, color='k', linestyle='dashed', linewidth=10)
@@ -362,12 +362,10 @@ if __name__ == "__main__":
     drop_trans = []
     raise_trans = []
     states_dict = defaultdict(list)
-    for sess_id in range(len(state_probs)): #(len(state_probs))
+    for sess_id in range(len(state_probs)):
 
         max_probs = parse_probs_by_state(state_probs[sess_id])
         drop_trans, raise_trans = find_state_change_inds(max_probs, drop_trans, raise_trans)
-        #print(f'drop probs {sess_id} {drop_trans}')
-        #print(f'raise probs {sess_id} {raise_trans}')
         combine_probs_by_trans(drop_trans, raise_trans, states_dict, sess_id)
         
         drop_trans = []
