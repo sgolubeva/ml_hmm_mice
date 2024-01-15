@@ -265,7 +265,7 @@ def get_rt_values(states_dict, window):
     position_before = defaultdict(list)
     position_after = defaultdict(list)
     for key in states_dict:
-        print(f'{key=}  {len(states_dict[key])=}')
+        #print(f'{key=}  {len(states_dict[key])=}')
         for item in states_dict[key]:
             #import ipdb; ipdb.set_trace() 
             tr = item[0]
@@ -293,7 +293,7 @@ def get_rt_values(states_dict, window):
                     position_after[i].append(afters[i])
 
         generate_fig(position_before, position_after, f'transitioning into state {key}', window)
-        plot_lines(position_before, position_after)
+        plot_lines(position_before, position_after, window, key)
         position_before = defaultdict(list)
         position_after = defaultdict(list)        
 
@@ -302,25 +302,43 @@ def generate_fig(rt_before, rt_after, st, window):
     """"Initializes a figure for peristimulus histograms"""
 
     fig, axes = plt.subplots(nrows=1, ncols=len(rt_before)*2, figsize=(400, 50), dpi=80, facecolor='w', sharey=True, sharex=True, edgecolor='k')
-    fig2, axes2 = plt.subplots(nrows=1, ncols=1, figsize=(100, 50), dpi=80, facecolor='w', sharey=True, sharex=True, edgecolor='k')
+    
     ind = 0
     for key in rt_before:
         plot_trans_hists(axes, rt_before[key], rt_after[key], st, key, ind, ind+window, col1='tab:purple', col2 = 'tab:red')
         ind+=1
-        
+
     plt.tight_layout()
     plt.savefig(f'peristim_hist_drop_{experiment}_{st}.png')
     plt.close(fig) # close previous figure otherwise computer runs out of memory
 
-def plot_lines(rct_before, rct_after):
+def plot_lines(rct_before, rct_after, window, state):
 
     """Plots lines representing mean reaction times per position"""
+
+    avrg_before = []
+    avrg_after = []
+    fig = plt.figure(figsize=(50, 20))
     for key in rct_before:
-        fig = plt.figure(figsize=(50, 20))
         filt_rt_before = [x for x in rct_before[key] if not math.isnan(x)] # filter out nans
         filt_rt_after = [x for x in rct_after[key] if not math.isnan(x)] # filter out nans
+        avrg_before.append(sum(filt_rt_before)/len(filt_rt_before))
+        avrg_after.append(sum(filt_rt_after)/len(filt_rt_after))
+    x1 = np.arange(-window, 0, 1)
+    x2 = np.arange(1, window+1, 1)
+    #import ipdb; ipdb.set_trace()
+    plt.plot(x1, avrg_before, color = 'k')
+    plt.plot(x2, avrg_after, color='r')
+    #plt.tight_layout()
+    plt.title(f'transitioning into {state} average RT by position', fontsize=30)
+    plt.xlabel('position', fontsize=30)
+    plt.ylabel('average RT', fontsize=30)
+    plt.tick_params(axis='both', which='major', labelsize=30)
+    plt.savefig(f'test_fig {state}')
+    avrg_before = []
+    avrg_after = []
 
-    
+  
 
 def plot_trans_hists(axes, rct_before, rct_after, st, key, ind1, ind2, col1, col2):
 
@@ -394,7 +412,7 @@ if __name__ == "__main__":
         
         drop_trans = []
         raise_trans = []
-    get_rt_values(states_dict, window=10)
+    get_rt_values(states_dict, window=30)
     
     #import ipdb; ipdb.set_trace() 
     
