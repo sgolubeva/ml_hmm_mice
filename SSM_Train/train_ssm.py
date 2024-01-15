@@ -251,54 +251,78 @@ def combine_probs_by_trans(drop_trans, raise_trans, states_dict, sess_id):
     raise_trans indexes where the state probability gets higher than 80% and corresponding state. Adds probability indexes into a dict
     under a tuple key (previous state, new state)"""
 
+    
     for i in range(len(drop_trans)):
-        key = (drop_trans[i][1], raise_trans[i][1])
+        key = (raise_trans[i][1])
         states_dict[key].append((drop_trans[i][0], raise_trans[i][0], sess_id))
+    
 
 def get_rt_values(states_dict, window):
 
     """Takes dictionary with state transition probability indexes and uses them to get the reaction times for 
     before and after the  state change"""
 
-    rt_before = []
-    rt_after = []
+    position_before = defaultdict(list)
+    position_after = defaultdict(list)
     for key in states_dict:
+        print(f'{key=}  {len(states_dict[key])=}')
         for item in states_dict[key]:
             #import ipdb; ipdb.set_trace() 
             tr = item[0]
             sess = item[2]
             if tr >= window:
                 befors = react_times[sess][tr-window:tr]
-                rt_before = rt_before + befors.tolist()
+                
+                for i in range(len(befors)):
+                    position_before[i].append(befors[i])
 
             else:
                 befors = react_times[sess][0:tr]
-                rt_before = rt_before + befors.tolist()
+                
+                for i in range(len(befors)):
+                    position_before[i].append(befors[i])
 
             if len(react_times[sess]) - tr > window:
                 afters = react_times[sess][tr+1:tr+window+1]
-                rt_after = rt_after + afters.tolist()
+                for i in range(len(afters)):
+                    position_after[i].append(afters[i])
 
             else:
                 afters = react_times[sess][tr+1:]
-                rt_after = rt_after + afters.tolist()
-        generate_fig(rt_before, rt_after, f'state {key[0]} to {key[1]}')
-        rt_before = []
-        rt_after = []        
+                for i in range(len(afters)):
+                    position_after[i].append(afters[i])
 
-def generate_fig(rt_before, rt_after, st):
+        generate_fig(position_before, position_after, f'transitioning into state {key}', window)
+        plot_lines(position_before, position_after)
+        position_before = defaultdict(list)
+        position_after = defaultdict(list)        
+
+def generate_fig(rt_before, rt_after, st, window):
 
     """"Initializes a figure for peristimulus histograms"""
 
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 50), dpi=80, facecolor='w', sharey=True, edgecolor='k')  
-    plot_trans_hists(axes, rt_before, rt_after, st, col='tab:purple')
+    fig, axes = plt.subplots(nrows=1, ncols=len(rt_before)*2, figsize=(400, 50), dpi=80, facecolor='w', sharey=True, sharex=True, edgecolor='k')
+    fig2, axes2 = plt.subplots(nrows=1, ncols=1, figsize=(100, 50), dpi=80, facecolor='w', sharey=True, sharex=True, edgecolor='k')
+    ind = 0
+    for key in rt_before:
+        plot_trans_hists(axes, rt_before[key], rt_after[key], st, key, ind, ind+window, col1='tab:purple', col2 = 'tab:red')
+        ind+=1
+        
     plt.tight_layout()
     plt.savefig(f'peristim_hist_drop_{experiment}_{st}.png')
     plt.close(fig) # close previous figure otherwise computer runs out of memory
 
+def plot_lines(rct_before, rct_after):
 
+    """Plots lines representing mean reaction times per position"""
+    for key in rct_before:
+        fig = plt.figure(figsize=(50, 20))
+        filt_rt_before = [x for x in rct_before[key] if not math.isnan(x)] # filter out nans
+        filt_rt_after = [x for x in rct_after[key] if not math.isnan(x)] # filter out nans
 
-def plot_trans_hists(axes, rct_before, rct_after, st, col):
+    
+
+def plot_trans_hists(axes, rct_before, rct_after, st, key, ind1, ind2, col1, col2):
 
     """Takes an array of reaction times and plots them on a histograms showing 
     before and after transition reaction times"""
@@ -307,26 +331,27 @@ def plot_trans_hists(axes, rct_before, rct_after, st, col):
     nan_count_before = np.sum(np.isnan(rct_before))
     nan_count_after = np.sum(np.isnan(rct_after))
     bins = np.arange(0, 2001, 100)
-    axes[0].hist(rct_before, bins=bins, edgecolor='k', color=col)
-    axes[0].tick_params(axis='both', which='major', labelsize=40)
-    axes[0].set_xlabel("reaction times", fontsize = 50)
-    axes[0].set_ylabel("count", fontsize = 50)
-    axes[0].set_title(f"RT before transition {st} nan # {nan_count_before} out {len(rct_before)} values", fontsize=50)
+    axes[ind1].hist(rct_before, bins=bins, edgecolor='k', color=col1)
+    axes[ind1].tick_params(axis='both', which='major', labelsize=80)
+    axes[ind1].set_xlabel("reaction times", fontsize = 80)
+    axes[ind1].set_ylabel("count", fontsize = 80)
+    axes[ind1].set_title(f"RT before {st} nan # {nan_count_before} out {len(rct_before)} values", fontsize=50)
     filt_rt_before = [x for x in rct_before if not math.isnan(x)] # filter out nans
     avrg_before = sum(filt_rt_before)/len(filt_rt_before)
-    axes[0].axvline(avrg_before, color='k', linestyle='dashed', linewidth=10)
+    axes[ind1].axvline(avrg_before, color='k', linestyle='dashed', linewidth=10)
     #min_ylim, max_ylim = axes[0].set_ylim()
-    axes[0].text(avrg_before + 5, 8, 'Mean: {:.2f}'.format(avrg_before), fontsize=50)
+    axes[ind1].text(avrg_before + 5, 8, 'Mean: {:.2f}'.format(avrg_before), fontsize=80)
 
-    axes[1].hist(rct_after, bins=bins, edgecolor='k', color=col)
-    axes[1].tick_params(axis='both', which='major', labelsize=40)
-    axes[1].set_xlabel("reaction times", fontsize = 50)
-    axes[1].set_ylabel("count", fontsize = 50)
-    axes[1].set_title(f"Reaction times after transition {st} nan # {nan_count_after} out {len(rct_after)} values", fontsize=50)
+    axes[ind2].hist(rct_after, bins=bins, edgecolor='k', color=col2)
+    axes[ind2].tick_params(axis='both', which='major', labelsize=80)
+    axes[ind2].set_xlabel("reaction times", fontsize = 80)
+    axes[ind2].set_ylabel("count", fontsize = 80)
+    axes[ind2].set_title(f"RT after {st} nan # {nan_count_after} out {len(rct_after)} values", fontsize=50)
     filt_rt_after = [x for x in rct_after if not math.isnan(x)] # filter out nans
     avrg_after = sum(filt_rt_after)/len(filt_rt_after)
-    axes[1].axvline(avrg_after, color='k', linestyle='dashed', linewidth=10)
-    axes[1].text(avrg_before + 5, 8, 'Mean: {:.2f}'.format(avrg_after), fontsize=50)
+    axes[ind2].axvline(avrg_after, color='k', linestyle='dashed', linewidth=10)
+    axes[ind2].text(avrg_before + 5, 8, 'Mean: {:.2f}'.format(avrg_after), fontsize=80)
+
 
 
 
@@ -370,6 +395,7 @@ if __name__ == "__main__":
         drop_trans = []
         raise_trans = []
     get_rt_values(states_dict, window=10)
+    
     #import ipdb; ipdb.set_trace() 
     
     
