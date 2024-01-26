@@ -152,6 +152,7 @@ def plot_states(ax, hmm, filt_choices, filt_inputs, num_states, sess_id = None):
     posterior_probs_new = [hmm.expected_states(data=data, input=inpt)[0]
                 for data, inpt
                 in zip(filt_choices, filt_inputs)] # plot states predicted by the model not initialized with statndard weights and matrices
+    print(posterior_probs_new[:100])
     #posterior_probs_true = [true_glmhmm.expected_states(data=data, input=inpt)[0]
                 #for data, inpt
                 #in zip(true_choice, inpts)] # plot states predicted by the model initialized with standard weights and matrices
@@ -345,6 +346,7 @@ def plot_all(hmm, filt_choices, filt_inputs, num_states, react_times, summary_di
         #plt.tight_layout()
         plt.savefig(f'glmhmm_psytrack_fit_{experiment}_session_{sess_id}_.png')
         plt.close(fig) # close previous figure otherwise computer runs out of memory
+        break
         
 def write_summary(summary_dict):
 
