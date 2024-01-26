@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 # the purpose of this script is to fit glm-hmm to mouse choice data
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 import ssm
 import psytrack as psy
 import copy
+import statistics
 from ssm.util import find_permutation
 import argparse
 from collections import defaultdict
@@ -19,6 +21,7 @@ import copy
 import math
 from matplotlib.gridspec import GridSpec
 from collections import defaultdict
+
 
 
 def get_args():
@@ -63,6 +66,7 @@ def plot_states(ax, hmm, filt_choices, filt_inputs, num_states, sess_id = None):
     posterior_probs_new = [hmm.expected_states(data=data, input=inpt)[0]
                 for data, inpt
                 in zip(filt_choices, filt_inputs)] # plot states predicted by the model not initialized with statndard weights and matrices
+    print(posterior_probs_new)
     #posterior_probs_true = [true_glmhmm.expected_states(data=data, input=inpt)[0]
                 #for data, inpt
                 #in zip(true_choice, inpts)] # plot states predicted by the model initialized with standard weights and matrices
@@ -224,6 +228,7 @@ def parse_probs_by_state(sess_state_prob):
     """Takes . Parses state probabilities by finding the max out of three probabilities for each data point
     and saving it and its corresponding state in a tuple"""
 
+    print(sess_state_prob)
     max_probs_and_inds = []
     for row in sess_state_prob:
         max_prob = np.max(row) # max probability out of three
@@ -318,26 +323,55 @@ def plot_lines(rct_before, rct_after, window, state):
 
     avrg_before = []
     avrg_after = []
-    fig = plt.figure(figsize=(50, 20))
+    stdev_before = []
+    stdev_after = []
+    fig = plt.figure(figsize=(30, 10))
+    #x1 = np.arange(-window, 0, 1)
+    #x2 = np.arange(1, window+1, 1)
+    x1 = ['pos -10', 'pos -9', 'pos -8', 'pos -7', 'pos -6', 'pos -5', 'pos -4', 'pos -3', 'pos -2', 'pos -1']
+    x2 = ['pos 1', 'pos 2', 'pos 3', 'pos 4', 'pos 5', 'pos 6', 'pos 7', 'pos 8', 'pos 9', 'pos 10']
+    positions1 = [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1]
+    positions2 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     for key in rct_before:
         filt_rt_before = [x for x in rct_before[key] if not math.isnan(x)] # filter out nans
         filt_rt_after = [x for x in rct_after[key] if not math.isnan(x)] # filter out nans
-        avrg_before.append(sum(filt_rt_before)/len(filt_rt_before))
-        avrg_after.append(sum(filt_rt_after)/len(filt_rt_after))
-    x1 = np.arange(-window, 0, 1)
-    x2 = np.arange(1, window+1, 1)
+        filt_rt_before = np.array(filt_rt_before)
+        filt_rt_after = np.array(filt_rt_after)
+        mask1 = filt_rt_before < 1250
+        mask2 = filt_rt_after < 1250
+        new_before = filt_rt_before[mask1]
+        new_after = filt_rt_after[mask2]
+        avrg_before.append(new_before)
+        avrg_after.append(new_after)
+    plt.boxplot(avrg_before, vert=True, patch_artist=True, positions=positions1, widths=0.3)
+    plt.boxplot(avrg_after, vert=True, patch_artist=True, positions=positions2, widths=0.3, boxprops=dict(facecolor='pink'))
+
+        # avrg_before.append(sum(filt_rt_before)/len(filt_rt_before))
+        # avrg_after.append(sum(filt_rt_after)/len(filt_rt_after))
+        # stdev_before.append(statistics.pstdev(filt_rt_before))
+        # stdev_after.append(statistics.pstdev(filt_rt_after))
+    # x1 = np.arange(-window, 0, 1)
+    # x2 = np.arange(1, window+1, 1)
+    # stdev_before = np.array(stdev_before)
+    # stdev_after = np.array(stdev_after)
+    # avrg_before = np.array(avrg_before)
+    # avrg_after = np.array(avrg_after)
     #import ipdb; ipdb.set_trace()
-    plt.plot(x1, avrg_before, color = 'k')
-    plt.plot(x2, avrg_after, color='r')
+    #plt.plot(x1, avrg_before, color = 'k')
+    #plt.errorbar(x1, avrg_before, yerr=stdev_before, fmt='none', capsize=5, capthick=2, ecolor='green')
+    #plt.fill_between(x1, avrg_before-stdev_before, avrg_before+stdev_after)
+    #plt.plot(x2, avrg_after, color='r')
+    #plt.errorbar(x2, avrg_after, yerr=stdev_after, fmt='none', capsize=5, capthick=2, ecolor='green')
     #plt.tight_layout()
-    plt.title(f'transitioning into {state} average RT by position', fontsize=30)
-    plt.xlabel('position', fontsize=30)
-    plt.ylabel('average RT', fontsize=30)
+    plt.title(f'transitioning into {state}', fontsize=30)
+    #plt.xlabel('position', fontsize=30)
+    #plt.ylabel('average RT', fontsize=30)
     plt.tick_params(axis='both', which='major', labelsize=30)
-    plt.savefig(f'test_fig {state}')
+    plt.savefig(f'lines_fig {state} {experiment}')
     avrg_before = []
     avrg_after = []
-
+    stdev_before = []
+    stdev_after = [] 
   
 
 def plot_trans_hists(axes, rct_before, rct_after, st, key, ind1, ind2, col1, col2):
@@ -409,10 +443,11 @@ if __name__ == "__main__":
         max_probs = parse_probs_by_state(state_probs[sess_id])
         drop_trans, raise_trans = find_state_change_inds(max_probs, drop_trans, raise_trans)
         combine_probs_by_trans(drop_trans, raise_trans, states_dict, sess_id)
+
         
         drop_trans = []
         raise_trans = []
-    get_rt_values(states_dict, window=30)
+    get_rt_values(states_dict, window=10)
     
     #import ipdb; ipdb.set_trace() 
     
