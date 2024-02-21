@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 # the purpose of this script is to fit glm-hmm to mouse choice data
@@ -30,7 +29,8 @@ def get_args():
 
     parser = argparse.ArgumentParser(description="global variables to set input file names")
     parser.add_argument("-ch", "--choices", help="choices file name", required=True, type=str)
-    parser.add_argument("-ip", "--inputs", help="input file name", required=True, type=str)
+    #parser.add_argument("-ip", "--inputs", help="input file name", required=True, type=str)
+    parser.add_argument("-st", "--stimilus", help="stimulus numpy file naame", required=True, type=str)
     parser.add_argument("-rt", "--react_times", help="reaction times file name", required=True, type=str)
     parser.add_argument("-g", "--gname", help="graph name", required=True, type=str)
     return parser.parse_args()
@@ -66,7 +66,7 @@ def plot_states(ax, hmm, filt_choices, filt_inputs, num_states, sess_id = None):
     posterior_probs_new = [hmm.expected_states(data=data, input=inpt)[0]
                 for data, inpt
                 in zip(filt_choices, filt_inputs)] # plot states predicted by the model not initialized with statndard weights and matrices
-    print(posterior_probs_new)
+    
     #posterior_probs_true = [true_glmhmm.expected_states(data=data, input=inpt)[0]
                 #for data, inpt
                 #in zip(true_choice, inpts)] # plot states predicted by the model initialized with standard weights and matrices
@@ -176,9 +176,9 @@ def parse_probs(state_probs, react_times, wind_sze):
                 if max_probs[i] >= 0.80 and max_probs[i-1] <= 0.8:
                     raise_trans.append(i)
         rts_before_drop, rts_after_drop = get_rts(drop_trans, sess_id,rts_before_drop, rts_after_drop, react_times, wind_sze)
-        #print(f'drop {len(rts_before_drop)=} {len(rts_after_drop)}')
+        
         rts_before_raise, rts_after_raise = get_rts(raise_trans, sess_id, rts_before_raise, rts_after_raise, react_times, wind_sze)
-        #print(f'raise {len(rts_before_raise)=} {len(rts_after_raise)}')
+        
         drop_trans = []
         raise_trans = []
 
@@ -228,7 +228,7 @@ def parse_probs_by_state(sess_state_prob):
     """Takes . Parses state probabilities by finding the max out of three probabilities for each data point
     and saving it and its corresponding state in a tuple"""
 
-    print(sess_state_prob)
+    
     max_probs_and_inds = []
     for row in sess_state_prob:
         max_prob = np.max(row) # max probability out of three
@@ -270,7 +270,7 @@ def get_rt_values(states_dict, window):
     position_before = defaultdict(list)
     position_after = defaultdict(list)
     for key in states_dict:
-        #print(f'{key=}  {len(states_dict[key])=}')
+        
         for item in states_dict[key]:
             #import ipdb; ipdb.set_trace() 
             tr = item[0]
@@ -297,7 +297,7 @@ def get_rt_values(states_dict, window):
                 for i in range(len(afters)):
                     position_after[i].append(afters[i])
 
-        generate_fig(position_before, position_after, f'transitioning into state {key}', window)
+        generate_fig(position_before, position_after, f'transitioning_into_state_{key}', window)
         plot_lines(position_before, position_after, window, key)
         position_before = defaultdict(list)
         position_after = defaultdict(list)        
@@ -310,12 +310,13 @@ def generate_fig(rt_before, rt_after, st, window):
     
     ind = 0
     for key in rt_before:
-        plot_trans_hists(axes, rt_before[key], rt_after[key], st, key, ind, ind+window, col1='tab:purple', col2 = 'tab:red')
+        #plot_trans_hists(axes, rt_before[key], rt_after[key], st, key, ind, ind+window, col1='tab:purple', col2 = 'tab:red')
         ind+=1
 
     plt.tight_layout()
     plt.savefig(f'peristim_hist_drop_{experiment}_{st}.png')
     plt.close(fig) # close previous figure otherwise computer runs out of memory
+
 
 def plot_lines(rct_before, rct_after, window, state):
 
@@ -343,8 +344,8 @@ def plot_lines(rct_before, rct_after, window, state):
         new_after = filt_rt_after[mask2]
         avrg_before.append(new_before)
         avrg_after.append(new_after)
-    plt.boxplot(avrg_before, vert=True, patch_artist=True, positions=positions1, widths=0.3)
-    plt.boxplot(avrg_after, vert=True, patch_artist=True, positions=positions2, widths=0.3, boxprops=dict(facecolor='pink'))
+    plt.boxplot(avrg_before, vert=True, patch_artist=True, meanline=True, positions=positions1, widths=0.3,boxprops=dict(linewidth=2), whiskerprops=dict(linewidth=2), capprops=dict(linewidth=2), meanprops=dict(marker='D', linestyle='--', markerfacecolor='red', linewidth=2))
+    plt.boxplot(avrg_after, vert=True, patch_artist=True, meanline=True, positions=positions2, widths=0.3, boxprops=dict(facecolor='pink', linewidth=2), whiskerprops=dict(linewidth=2), capprops=dict(linewidth=2), meanprops=dict(marker='D', linestyle='--', markerfacecolor='blue', linewidth=2))
 
         # avrg_before.append(sum(filt_rt_before)/len(filt_rt_before))
         # avrg_after.append(sum(filt_rt_after)/len(filt_rt_after))
@@ -363,11 +364,16 @@ def plot_lines(rct_before, rct_after, window, state):
     #plt.plot(x2, avrg_after, color='r')
     #plt.errorbar(x2, avrg_after, yerr=stdev_after, fmt='none', capsize=5, capthick=2, ecolor='green')
     #plt.tight_layout()
-    plt.title(f'transitioning into {state}', fontsize=30)
-    #plt.xlabel('position', fontsize=30)
-    #plt.ylabel('average RT', fontsize=30)
+    if state == 0:
+        plt.title(f'transitioning into optimal state', fontsize=30)
+    if state == 1:
+        plt.title(f'transitioning into biased state', fontsize=30)
+    if state == 2:
+        plt.title(f'transitioning into no response state', fontsize=30)
+    plt.xlabel('position', fontsize=30)
+    plt.ylabel('reaction times', fontsize=30)
     plt.tick_params(axis='both', which='major', labelsize=30)
-    plt.savefig(f'lines_fig {state} {experiment}')
+    plt.savefig(f'box_plots/{experiment}/box_fig_{state}_{experiment}')
     avrg_before = []
     avrg_after = []
     stdev_before = []
@@ -410,15 +416,26 @@ def plot_trans_hists(axes, rct_before, rct_after, st, key, ind1, ind2, col1, col
 if __name__ == "__main__":
     args = get_args()
     choice_f: str = args.choices #holds path or file name of mouse choice data
-    input_f: str = args.inputs #holds path or file name of mouse inputs data
+    #input_f: str = args.inputs #holds path or file name of mouse inputs data
+    stimulus_f: str = args.stimilus # holds a file name to mouse stimulus data
     react_times_f = args.react_times #holds path for reaction times
     experiment: str = args.gname #holds experiment number to use as a graph header
          #load mouse inputs and choices
     npr.seed(42)
 
-    inputs = np.load(input_f,allow_pickle = True) # load numpy file inputs
+    #inputs = np.load(input_f,allow_pickle = True) # load numpy file inputs
+    
+
     choices = np.load(choice_f,allow_pickle = True) # load numpy files choices
-    react_times = np.load(react_times_f, allow_pickle = True) # load numpy file reaction times
+    stimulus = np.load(stimulus_f, allow_pickle=True) # load numpy stimulus
+    # generate inputs from stimulus arrays by adding the second column containing value 1.
+    inputs = []
+    for session in stimulus:
+        new_col = np.ones_like(session)
+        result = np.column_stack((session, new_col))
+        inputs.append(result)
+
+    react_times = np.load(react_times_f, allow_pickle=True) # load numpy file reaction times
     input_dim: int = inputs[0].shape[1]  # input dimensions
     num_states = 3        # number of discrete states
     TOL: float = 10**-4 # tolerance 
