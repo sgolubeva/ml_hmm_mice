@@ -67,19 +67,7 @@ def plot_states(ax, hmm, filt_choices, filt_inputs, num_states, sess_id = None):
                 for data, inpt
                 in zip(filt_choices, filt_inputs)] # plot states predicted by the model not initialized with statndard weights and matrices
     
-    #posterior_probs_true = [true_glmhmm.expected_states(data=data, input=inpt)[0]
-                #for data, inpt
-                #in zip(true_choice, inpts)] # plot states predicted by the model initialized with standard weights and matrices
-    
-    # plot true states of the model when it generated the choice data
-    # x_range = np.array(range(len(true_latents[0])))
-    # for i in range(len(cols)):
-    #     mask = (true_latents[0] == i)
-    #     y_values = np.ones(len(true_latents[0][mask]))
-    #     ax.scatter(x_range[mask], y_values*1.25, c=cols[i], label=f'state {i+1}')
 
-    
-    #sess_id = 0 #session id; can choose any index between 0 and num_sess-1
     for k in range(num_states):
         ax.plot(posterior_probs_new[sess_id][:, k], label="State " + str(k + 1), lw=4,
                 color=cols[k])
@@ -119,7 +107,7 @@ def plot_all(trans_list, sess_id):
     for i in range(len(trans_list+1)):
         if i == 0:
             ax = fig.add_subplot(gs[0,:])
-            plot_reaction_times(ax, react_times, sess_id)
+            plot_reaction_times(ax, react_times_exp, sess_id)
         if i == 1:
             ax = fig.add_subplot(gs[1,:])
             ax = plot_states(ax, hmm, choices, inputs, num_states, sess_id)
@@ -130,7 +118,7 @@ def plot_all(trans_list, sess_id):
     plt.savefig(f'glmhmm_rt_fit_{experiment}_session__.png')
 
 
-def get_rts(trans_list, sess_id, rts_list_before, rts_list_after, react_times, wind_sze):
+def get_rts(trans_list, sess_id, rts_list_before, rts_list_after, react_times_exp, wind_sze):
 
     """Takes a list of transitions that contains indexes of points when state transition happened.
     Accesses reaction time numpy array ussing session number and saves corresponding reaction times into a reaction times list"""
@@ -138,25 +126,25 @@ def get_rts(trans_list, sess_id, rts_list_before, rts_list_after, react_times, w
     
     for tr in trans_list:
         if tr >= wind_sze:
-            befors = react_times[sess_id][tr-wind_sze:tr]
+            befors = react_times_exp[sess_id][tr-wind_sze:tr]
             rts_list_before = rts_list_before + befors.tolist()
             
         else:
-            befors = react_times[sess_id][0:tr]
+            befors = react_times_exp[sess_id][0:tr]
             rts_list_before = rts_list_before + befors.tolist()
             
-        if len(react_times[sess_id]) - tr > wind_sze:
-            afters = react_times[sess_id][tr+1:tr+wind_sze+1]
+        if len(react_times_exp[sess_id]) - tr > wind_sze:
+            afters = react_times_exp[sess_id][tr+1:tr+wind_sze+1]
             rts_list_after = rts_list_after + afters.tolist()
             
         else:
-            afters = react_times[sess_id][tr+1:]
+            afters = react_times_exp[sess_id][tr+1:]
             rts_list_after = rts_list_after + afters.tolist()
         
     return rts_list_before, rts_list_after
 
 
-def parse_probs(state_probs, react_times, wind_sze):
+def parse_probs(state_probs, react_times_exp, wind_sze):
 
     """Takes state probabilities. Iterates over state probabilities by session and triggers plotting function if
     state probability drops lower than 80% or rases higher than 80%"""
@@ -175,9 +163,9 @@ def parse_probs(state_probs, react_times, wind_sze):
                     drop_trans.append(i)
                 if max_probs[i] >= 0.80 and max_probs[i-1] <= 0.8:
                     raise_trans.append(i)
-        rts_before_drop, rts_after_drop = get_rts(drop_trans, sess_id,rts_before_drop, rts_after_drop, react_times, wind_sze)
+        rts_before_drop, rts_after_drop = get_rts(drop_trans, sess_id,rts_before_drop, rts_after_drop, react_times_exp, wind_sze)
         
-        rts_before_raise, rts_after_raise = get_rts(raise_trans, sess_id, rts_before_raise, rts_after_raise, react_times, wind_sze)
+        rts_before_raise, rts_after_raise = get_rts(raise_trans, sess_id, rts_before_raise, rts_after_raise, react_times_exp, wind_sze)
         
         drop_trans = []
         raise_trans = []
@@ -186,13 +174,13 @@ def parse_probs(state_probs, react_times, wind_sze):
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 40), dpi=80, facecolor='w', edgecolor='k')  
     plot_peristimulus_hist(axes, rts_before_drop, rts_after_drop, col='tab:purple')
     plt.tight_layout()
-    plt.savefig(f'peristim_hist_drop_{experiment}_.png')
+    plt.savefig(f'peristim_hists/{experiment}/peristim_hist_drop_{experiment}_.png')
     plt.close(fig) # close previous figure otherwise computer runs out of memory
 
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(80, 40), dpi=80, facecolor='w', edgecolor='k')  
     plot_peristimulus_hist(axes, rts_before_raise, rts_after_raise, col='tab:green')
     plt.tight_layout()
-    plt.savefig(f'peristim_hist_rise_{experiment}_.png')
+    plt.savefig(f'peristim_hists/{experiment}/peristim_hist_rise_{experiment}_.png')
     plt.close(fig) # close previous figure otherwise computer runs out of memory
 
 
@@ -262,7 +250,7 @@ def combine_probs_by_trans(drop_trans, raise_trans, states_dict, sess_id):
         states_dict[key].append((drop_trans[i][0], raise_trans[i][0], sess_id))
     
 
-def get_rt_values(states_dict, window):
+def get_rt_values(react_times_exp, states_dict, window):
 
     """Takes dictionary with state transition probability indexes and uses them to get the reaction times for 
     before and after the  state change"""
@@ -276,24 +264,24 @@ def get_rt_values(states_dict, window):
             tr = item[0]
             sess = item[2]
             if tr >= window:
-                befors = react_times[sess][tr-window:tr]
+                befors = react_times_exp[sess][tr-window:tr]
                 
                 for i in range(len(befors)):
                     position_before[i].append(befors[i])
 
             else:
-                befors = react_times[sess][0:tr]
+                befors = react_times_exp[sess][0:tr]
                 
                 for i in range(len(befors)):
                     position_before[i].append(befors[i])
 
-            if len(react_times[sess]) - tr > window:
-                afters = react_times[sess][tr+1:tr+window+1]
+            if len(react_times_exp[sess]) - tr > window:
+                afters = react_times_exp[sess][tr+1:tr+window+1]
                 for i in range(len(afters)):
                     position_after[i].append(afters[i])
 
             else:
-                afters = react_times[sess][tr+1:]
+                afters = react_times_exp[sess][tr+1:]
                 for i in range(len(afters)):
                     position_after[i].append(afters[i])
 
@@ -314,7 +302,7 @@ def generate_fig(rt_before, rt_after, st, window):
         ind+=1
 
     plt.tight_layout()
-    plt.savefig(f'peristim_hist_drop_{experiment}_{st}.png')
+    plt.savefig(f'peristim_hists/{experiment}/peristim_hist_drop_{experiment}_{st}.png')
     plt.close(fig) # close previous figure otherwise computer runs out of memory
 
 
@@ -427,6 +415,12 @@ if __name__ == "__main__":
     
 
     choices = np.load(choice_f,allow_pickle = True) # load numpy files choices
+
+    choices_exp = []
+    for session in choices:
+        expanded_arr = np.expand_dims(session, axis=1)
+        choices_exp.append(expanded_arr)
+    choices = np.array(choices_exp, dtype=object)
     stimulus = np.load(stimulus_f, allow_pickle=True) # load numpy stimulus
     # generate inputs from stimulus arrays by adding the second column containing value 1.
     inputs = []
@@ -436,22 +430,29 @@ if __name__ == "__main__":
         inputs.append(result)
 
     react_times = np.load(react_times_f, allow_pickle=True) # load numpy file reaction times
+    react_times_exp = []
+    for session in react_times:
+        rt_exp = np.array(session)
+        react_times_exp.append(rt_exp)
+    react_times_exp = np.array(react_times_exp, dtype=object)
+
     input_dim: int = inputs[0].shape[1]  # input dimensions
     num_states = 3        # number of discrete states
     TOL: float = 10**-4 # tolerance 
     N_iters: int = 1000 # number of iterations for the fitting model
 
-    obs_dim: int = choices[0].shape[1]          # number of observed dimensions
+    obs_dim: int = choices_exp[0].shape[1]          # number of observed dimensions
     num_categories: int = len(np.unique(np.concatenate(choices)))    # number of categories for output
-
+    #import ipdb; ipdb.set_trace()
     hmm = ssm.HMM(num_states, obs_dim, input_dim, observations="input_driven_obs", 
                    observation_kwargs=dict(C=num_categories), transitions="standard")
-    fit_glmhmm = fit_glm_hmm(hmm, choices, inputs, N_iters,TOL)
-    state_probs = get_state_probs(hmm, choices, inputs)
+    fit_glmhmm = fit_glm_hmm(hmm, choices_exp, inputs, N_iters,TOL)
+    state_probs = get_state_probs(hmm, choices_exp, inputs)
 
     wind_sze = 5
-    parse_probs(state_probs, react_times, wind_sze)
+    parse_probs(state_probs, react_times_exp, wind_sze)
 
+    #import ipdb; ipdb.set_trace() 
     drop_trans = []
     raise_trans = []
     states_dict = defaultdict(list)
@@ -460,11 +461,10 @@ if __name__ == "__main__":
         max_probs = parse_probs_by_state(state_probs[sess_id])
         drop_trans, raise_trans = find_state_change_inds(max_probs, drop_trans, raise_trans)
         combine_probs_by_trans(drop_trans, raise_trans, states_dict, sess_id)
-
-        
+   
         drop_trans = []
         raise_trans = []
-    get_rt_values(states_dict, window=10)
+    get_rt_values(react_times_exp, states_dict, window=10)
     
     #import ipdb; ipdb.set_trace() 
     
