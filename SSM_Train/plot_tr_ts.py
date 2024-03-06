@@ -48,9 +48,9 @@ y1 = []
 x2 = []
 y2 = []
 
-fig, axs = plt.subplots(2, 1)
-fig.text(0.5,0.04, "State number n", ha="center", va="center")
-fig.text(0.02,0.5, "Log Likelihood", ha="center", va="center", rotation=90)
+fig, axs = plt.subplots(1,1)
+fig.text(0.5,0.04, "State number n", ha="center", va="center", fontsize=15)
+fig.text(0.02,0.5, "Log Likelihood", ha="center", va="center", rotation=90, fontsize=15)
 for key in keys:
     x1.extend([key])
     y1.append(np.mean(test_likeli_dict[key]))
@@ -58,12 +58,13 @@ for key in keys:
     x2.extend([key])
     y2.append(np.mean(train_likeli_dict[key]))
 
-axs[0].scatter(x1, y1, label='test_data', color='blue')
-axs[1].scatter(x2, y2, label='train_data', color='red')
-axs[1].yaxis.tick_right()
-axs[1].yaxis.set_ticks_position('both')
-axs[0].yaxis.set_ticks_position('both')
-axs[0].set_title(f"Log_likelihood_{experiment}")
+axs.scatter(x1, y1, label='test_data', color='indigo', s=100, alpha=0.8)
+#axs[1].scatter(x2, y2, label='train_data', color='red')
+#axs[1].yaxis.tick_right()
+#axs[1].yaxis.set_ticks_position('both')
+axs.yaxis.set_ticks_position('both')
+plt.tick_params(axis='both', which='major', labelsize=9)
+axs.set_title(f"Log_likelihood_{experiment}", fontsize=15)
 
 plt.subplots_adjust(wspace=0, hspace=0)
 axs[0].legend(loc='lower right')
