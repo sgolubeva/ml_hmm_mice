@@ -211,14 +211,14 @@ def plot_dinamic_weights(ax, dimc_weights, wMode, len_track):
 
     
     x_range = np.array(range(len(dimc_weights)))
-    ax.plot(x_range, dimc_weights[:, 0], c='tab:blue', label=f'glmhmm_stimulus')
+    ax.plot(x_range, dimc_weights[:, 0], c='tab:blue', label=f'glmhmm_stimulus', linewidth=10)
     #ax.plot(x_range, dimc_weights[:, 1], c='tab:orange', label=f'glmhmm_bias')
     #ax.plot(x_range, wMode[0][len_track:(len_track + len(dimc_weights))], c='tab:green', label=f'psytrack_bias')
-    ax.plot(x_range, wMode[1][len_track:(len_track + len(dimc_weights))], c='tab:red', label=f'psytrack_stimulus')
-    ax.legend(prop=dict(size=40))
-    ax.tick_params(axis='both', which='major', labelsize=40)
-    ax.set_xlabel("trial #", fontsize = 50)
-    ax.set_ylabel("weight", fontsize = 50)
+    ax.plot(x_range, wMode[1][len_track:(len_track + len(dimc_weights))], c='tab:red', label=f'psytrack_stimulus', linewidth=10)
+    ax.legend(prop=dict(size=70))
+    ax.tick_params(axis='both', which='major', labelsize=100)
+    ax.set_xlabel("trial #", fontsize = 100)
+    ax.set_ylabel("weight", fontsize = 100)
     
 
 def plot_reaction_times(ax, react_times, sess_id):
@@ -256,7 +256,7 @@ def plot_all(wMode,hmm, filt_choices, filt_inputs, num_states, filt_react_times)
         plt.tight_layout()
         plt.savefig(f'glmhmm_psytrack_fit_{experiment}_session_{sess_id}_.png')
         plt.close(fig) # close previous figure otherwise computer runs out of memory
-        print(f'iteration number {sess_id}')
+        
     
 
 

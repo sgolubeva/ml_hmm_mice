@@ -148,16 +148,17 @@ def plot_states(ax, hmm, filt_choices, filt_inputs, num_states, sess_id = None):
 
     """Takes fitted glm hmm and an axis object for plotting and plots states on the second subplot"""
     
-    cols = ['#ff7f00', '#4daf4a', '#377eb8']
+    cols = ['#4daf4a', '#ff7f00', '#377eb8'] #['#ff7f00', '#4daf4a', '#377eb8']
     posterior_probs_new = [hmm.expected_states(data=data, input=inpt)[0]
                 for data, inpt
                 in zip(filt_choices, filt_inputs)] # plot states predicted by the model not initialized with statndard weights and matrices
+    print(posterior_probs_new[:100])
     #posterior_probs_true = [true_glmhmm.expected_states(data=data, input=inpt)[0]
                 #for data, inpt
                 #in zip(true_choice, inpts)] # plot states predicted by the model initialized with standard weights and matrices
     
     # plot true states of the model when it generated the choice data
-    # x_range = np.array(range(len(true_latents[0])))
+    #x_range = np.array(range(len(true_latents[0])))
     # for i in range(len(cols)):
     #     mask = (true_latents[0] == i)
     #     y_values = np.ones(len(true_latents[0][mask]))
@@ -165,19 +166,23 @@ def plot_states(ax, hmm, filt_choices, filt_inputs, num_states, sess_id = None):
 
     
     #sess_id = 0 #session id; can choose any index between 0 and num_sess-1
+    x_axis = np.arange(len(posterior_probs_new[sess_id]))
     for k in range(num_states):
-        ax.plot(posterior_probs_new[sess_id][:, k], label="State " + str(k + 1), lw=4,
+        ax.plot(posterior_probs_new[sess_id][:, k], lw=4,
                 color=cols[k])
+        ax.fill_between(x_axis, posterior_probs_new[sess_id][:, k], lw=4,
+                color=cols[k], alpha=0.2)
         #ax.plot(posterior_probs_true[sess_id][:, k], label="State " + str(k + 1), lw=2,
                 #color=cols[k], linestyle='--')
     
     #plt.ylim((-0.01, 1.5))
-    ax.legend(prop=dict(size=25))
+    #ax.legend(prop=dict(size=70))
     ax.set_yticks([0, 0.5, 1]) # had to remove  fontsize = 10 because mpl complained
-    ax.tick_params(axis='both', which='major', labelsize=40) 
-    ax.set_xlabel("trial #", fontsize = 50)
-    ax.set_ylabel("p(state)", fontsize = 50)
-    ax.set_title(f"States", fontsize=50)
+    ax.tick_params(axis='both', which='major', labelsize=100)
+    ax.margins(x=0) 
+    ax.set_xlabel("trial #", fontsize = 100)
+    ax.set_ylabel("p(state)", fontsize = 100)
+    ax.set_title(f"States", fontsize=100)
 
 
 def plot_choices(ax, inpts, choices, sess_id):
@@ -210,27 +215,28 @@ def plot_choices(ax, inpts, choices, sess_id):
     result_ncho = np.where(no_cho & (bool_inpts == 1), 0.51, np.where(no_cho & (bool_inpts == 0), 0.5, 0))
     jitter = 0.01 * np.random.randn(len(result_ncho))
     y_values_jittered = jitter+result_ncho
-    scatter_ncho_right = ax.scatter(x_range[result_ncho == 0.51], y_values_jittered[result_ncho == 0.51], color= 'r', alpha=alpha, s=400)
-    scatter_ncho_left = ax.scatter(x_range[result_ncho == 0.50], y_values_jittered[result_ncho == 0.50], color= 'k', alpha=alpha, s=400)
+    scatter_ncho_right = ax.scatter(x_range[result_ncho == 0.51], y_values_jittered[result_ncho == 0.51], color= 'r', alpha=alpha, s=700, marker = 'v')
+    scatter_ncho_left = ax.scatter(x_range[result_ncho == 0.50], y_values_jittered[result_ncho == 0.50], color= 'k', alpha=alpha, s=700, marker = 'o')
     
     # plot correct choices
     result_cho = np.where(correct_choices & (bool_inpts == 1), 1.51, np.where(correct_choices & (bool_inpts == 0), 1.50, 0))
     y_values_jittered = jitter+result_cho
-    scatter_cho_right = ax.scatter(x_range[result_cho == 1.51], y_values_jittered[result_cho == 1.51], color= 'r', alpha=alpha, s=400)
-    scatter_cho_left = ax.scatter(x_range[result_cho == 1.50], y_values_jittered[result_cho == 1.50], color= 'k', alpha=alpha, s=400)
+    scatter_cho_right = ax.scatter(x_range[result_cho == 1.51], y_values_jittered[result_cho == 1.51], color= 'r', alpha=alpha, s=700, marker = 'v')
+    scatter_cho_left = ax.scatter(x_range[result_cho == 1.50], y_values_jittered[result_cho == 1.50], color= 'k', alpha=alpha, s=700, marker = 'o')
     
     # plot wrong choices
     result_err = np.where(~correct_choices & (bool_inpts == 1), 1.01, np.where(~correct_choices & (bool_inpts == 0), 1, 0))
     y_values_jittered = jitter+result_err
-    scatter_err_right = ax.scatter(x_range[result_err == 1.01], y_values_jittered[result_err == 1.01], color= 'r', alpha=alpha, s=400, label='Right')
-    scatter_err_left = ax.scatter(x_range[result_err == 1], y_values_jittered[result_err == 1], color= 'k', alpha=alpha, s=400, label='Left')
+    scatter_err_right = ax.scatter(x_range[result_err == 1.01], y_values_jittered[result_err == 1.01], color= 'r', alpha=alpha, s=700, label='Right', marker = 'v')
+    scatter_err_left = ax.scatter(x_range[result_err == 1], y_values_jittered[result_err == 1], color= 'k', alpha=alpha, s=700, label='Left', marker = 'o')
     ax.set_yticks([0.5,1,1.5], ['No resp', 'Error', 'Hit'])
 
-    ax.tick_params(axis='both', which='major', labelsize=40)
-    ax.legend(prop=dict(size=40))
-    ax.set_xlabel("trial #", fontsize = 50)
-    ax.set_ylabel("choice", fontsize = 50)
-    ax.set_title(f"Choices", fontsize=50)
+    ax.tick_params(axis='both', which='major', labelsize=100)
+    ax.legend(prop=dict(size=70), loc='upper right')
+    ax.margins(x=0)
+    ax.set_xlabel("trial #", fontsize = 100)
+    ax.set_ylabel("choice", fontsize = 100)
+    ax.set_title(f"Choices", fontsize=100)
 
     
 
@@ -304,14 +310,6 @@ def plot_correct_wrong_rts(ax, side: bool, sess_id, inpts, choices, react_times,
     ax.set_title(f"reaction times {side}", fontsize=50)
 
 
-def plot_peristim_hist():
-
-    """Takes hmm, reaction times sess_id. Plots peristimulus histograms by checking for state trasnsition
-    points. A transition point is denoted as a drop in max state pobability below 80%. When this point is reached 
-    I take 5 points upsteream and 5 points downstream in the corresponding index reaction time array"""
-
-    pass
-
 def plot_all(hmm, filt_choices, filt_inputs, num_states, react_times, summary_dict):
 
     """main plotting function. Plots states, choices, psytrack and glmhmm weights on different plots"""
@@ -319,35 +317,36 @@ def plot_all(hmm, filt_choices, filt_inputs, num_states, react_times, summary_di
     len_track = 0 #track length of psytrack wMode array for plotting
     for sess_id in range(len(filt_choices)):
         #fig, axes = plt.subplots(nrows=4, figsize=(100, 50), dpi=80, facecolor='w', edgecolor='k')
-        fig = plt.figure(figsize=(100, 80))
+        fig = plt.figure(figsize=(100, 80), linewidth=100, edgecolor='black' )
         gs=GridSpec(5,2)
                 
         for i in range(7):
             if i == 0:
                 ax1 = fig.add_subplot(gs[0,:])  # First row, span all columns
                 plot_choices(ax1, filt_inputs, filt_choices, sess_id) # plot mouse_choices
-            if i == 1:
-                ax2 = fig.add_subplot(gs[1,0])  # Second row, first column
-                plot_react_time_by_choice(ax2, 'right', sess_id, filt_inputs, react_times, summary_dict)
-            if i == 2:
-                ax3 = fig.add_subplot(gs[1,1])  # Second row, second column
-                plot_react_time_by_choice(ax3, 'left', sess_id, filt_inputs, react_times, summary_dict)
-            if i == 3:
-                ax4 = fig.add_subplot(gs[2,0])
-                plot_correct_wrong_rts(ax4, True, sess_id, filt_inputs, choices, react_times, summary_dict)
-            if i == 4:
-                ax5 = fig.add_subplot(gs[2,1])
-                plot_correct_wrong_rts(ax5, False, sess_id, filt_inputs, choices, react_times, summary_dict)
+            # if i == 1:
+            #     ax2 = fig.add_subplot(gs[1,0])  # Second row, first column
+            #     plot_react_time_by_choice(ax2, 'right', sess_id, filt_inputs, react_times, summary_dict)
+            # if i == 2:
+            #     ax3 = fig.add_subplot(gs[1,1])  # Second row, second column
+            #     plot_react_time_by_choice(ax3, 'left', sess_id, filt_inputs, react_times, summary_dict)
+            # if i == 3:
+            #     ax4 = fig.add_subplot(gs[2,0])
+            #     plot_correct_wrong_rts(ax4, True, sess_id, filt_inputs, choices, react_times, summary_dict)
+            # if i == 4:
+            #     ax5 = fig.add_subplot(gs[2,1])
+            #     plot_correct_wrong_rts(ax5, False, sess_id, filt_inputs, choices, react_times, summary_dict)
             if i == 5:
                 ax6 = fig.add_subplot(gs[3,:])  # Second row, second column
                 plot_states(ax6, hmm, filt_choices, filt_inputs, num_states, sess_id) # plot states
-            if i == 6:
-                ax7 = fig.add_subplot(gs[4,:])
-                plot_reaction_times(ax7, react_times, sess_id)
+            # if i == 6:
+            #     ax7 = fig.add_subplot(gs[4,:])
+            #     plot_reaction_times(ax7, react_times, sess_id)
                 
-        plt.tight_layout()
+        #plt.tight_layout()
         plt.savefig(f'glmhmm_psytrack_fit_{experiment}_session_{sess_id}_.png')
         plt.close(fig) # close previous figure otherwise computer runs out of memory
+        break
         
 def write_summary(summary_dict):
 
@@ -381,7 +380,7 @@ if __name__ == "__main__":
     react_times_f = args.react_times #holds path for reaction times
     experiment: str = args.gname #holds experiment number to use as a graph header
          #load mouse inputs and choices
-    npr.seed(0)
+    npr.seed(42)
     inputs = np.load(input_f,allow_pickle = True) # load numpy file inputs
     choices = np.load(choice_f,allow_pickle = True) # load numpy files choices
     react_times = np.load(react_times_f, allow_pickle = True) # load numpy file reaction times
@@ -400,7 +399,7 @@ if __name__ == "__main__":
     fit_glmhmm = fit_glm_hmm(hmm, choices, inputs, N_iters,TOL)
 
     plot_all(hmm, choices, inputs, num_states, react_times, summary_dict)
-    write_summary(summary_dict)
+    #write_summary(summary_dict)
 
 
         
